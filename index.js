@@ -355,7 +355,7 @@ bot.on("ready", () => {
     }, null, true, 'Europe/Bratislava');
 
     //skplayers shop
-    var nakup = new cron.CronJob('0 * * * *', async function() {
+    var nakup = new cron.CronJob('0 */2 * * *', async function() {
         update_shop_items();
     }, null, true, 'Europe/Bratislava');
     
@@ -722,32 +722,34 @@ function update_shop_items(){
         var i = 0;
         setTimeout(() => {
             var timer = setInterval(() => {
-                db.collection('shop').doc(item_list[i]).get().then(async(a)=>{
-                    fetch(`https://steamcommunity.com/market/priceoverview/?appid=730&currency=3&market_hash_name=${a.data().market_hash_name}`)
-                    .then(response => response.json())
-                    .then(async(b) => {
-                        let eur = b.lowest_price.split(",")[0];
-                        let centy = b.lowest_price.split(",")[1].slice(0,-1);
-                        eur = parseInt(eur);
-                        centy = parseInt(centy);
-
-                        var celkova_suma = 0;
-                        if(!isNaN(eur)){
-                            celkova_suma += eur*100*1000;
-                        }
-                        if(!isNaN(centy)){
-                            celkova_suma += centy*1000;
-                        }
-
-                        db.collection('shop').doc(item_list[i]).update({
-                            "price": celkova_suma
+                db.collection('shop').doc(item_list[i]).get().then((a)=>{
+                    if(a.exists){
+                        fetch(`https://steamcommunity.com/market/priceoverview/?appid=730&currency=3&market_hash_name=${a.data().market_hash_name}`)
+                        .then(response => response.json())
+                        .then((b) => {
+                            let eur = b.lowest_price.split(",")[0];
+                            let centy = b.lowest_price.split(",")[1].slice(0,-1);
+                            eur = parseInt(eur);
+                            centy = parseInt(centy);
+    
+                            var celkova_suma = 0;
+                            if(!isNaN(eur)){
+                                celkova_suma += eur*100*1000;
+                            }
+                            if(!isNaN(centy)){
+                                celkova_suma += centy*1000;
+                            }
+    
+                            db.collection('shop').doc(item_list[i]).update({
+                                "price": celkova_suma
+                            });
+                            i++;
+                            if(i == item_count){
+                                clearInterval(timer);
+                            }
+    
                         });
-                        i++;
-                        if(i == item_count){
-                            clearInterval(timer);
-                        }
-
-                    });
+                    }
                 });
             }, 3000);
         }, 5000);
