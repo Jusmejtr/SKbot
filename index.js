@@ -187,6 +187,29 @@ bot.on("ready", () => {
     var narodeniny12 = new cron.CronJob('00 00 10 2 0 *', function() {
         bot.channels.cache.get("472822895098200066").send("Tretie výročie SKbota na serveri 🎉");
     }, null, true, 'Europe/Bratislava');
+
+    let fortuna_users = ['452773419105255435', '421391887698755587', '479222589294641154'];
+
+    var repeat_time = new cron.CronJob('0 12 * * 1,3,5', function() {
+        let embed = new EmbedBuilder()
+        .setTitle("Súťaž")
+        .setURL("https://www.ifortuna.sk/komunita")
+        .setDescription("Aktuálne prebieha súťaž na fortune, tak sa nezabudni pripojiť")
+        fortuna_users.forEach((f_user) => {
+            bot.guilds.cache.get(skplayersID).members.cache.get(f_user).send({embeds: [embed]});
+        });
+    }, null, true, 'Europe/Bratislava');
+
+    var repeat_time2 = new cron.CronJob('0 16 * * 2-4', function() {
+        let embed = new EmbedBuilder()
+        .setTitle("Stávka bez rizika")
+        .setURL("https://www.ifortuna.sk/")
+        .setDescription("Aktuálne prebieha akcia stávka bez rizika, tak si nezabudni vložiť peniaze na účet a využiť túto stávku");
+        fortuna_users.forEach((f_user) => {
+            bot.guilds.cache.get(skplayersID).members.cache.get(f_user).send({embeds: [embed]});
+        });
+    }, null, true, 'Europe/Bratislava');
+    
     
     
     //na buy name/vip
