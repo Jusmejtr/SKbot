@@ -188,19 +188,9 @@ bot.on("ready", () => {
         bot.channels.cache.get("472822895098200066").send("Tretie výročie SKbota na serveri 🎉");
     }, null, true, 'Europe/Bratislava');
 
-    let fortuna_users = ['452773419105255435', '421391887698755587', '479222589294641154'];
+    let fortuna_users = ['452773419105255435', '421391887698755587', '479222589294641154', '420237481536126988'];
 
-    var repeat_time = new cron.CronJob('0 12 * * 1,3,5', function() {
-        let embed = new EmbedBuilder()
-        .setTitle("Súťaž")
-        .setURL("https://www.ifortuna.sk/komunita")
-        .setDescription("Aktuálne prebieha súťaž na fortune, tak sa nezabudni pripojiť")
-        fortuna_users.forEach((f_user) => {
-            bot.guilds.cache.get(skplayersID).members.cache.get(f_user).send({embeds: [embed]});
-        });
-    }, null, true, 'Europe/Bratislava');
-
-    var repeat_time2 = new cron.CronJob('0 16 * * 2-4', function() {
+    var repeat_time = new cron.CronJob('0 16 * * 2-4', function() {
         let embed = new EmbedBuilder()
         .setTitle("Stávka bez rizika")
         .setURL("https://www.ifortuna.sk/")
@@ -378,9 +368,9 @@ bot.on("ready", () => {
     }, null, true, 'Europe/Bratislava');
 
     //skplayers shop
-    var nakup = new cron.CronJob('0 */2 * * *', async function() {
-        update_shop_items();
-    }, null, true, 'Europe/Bratislava');
+    // var nakup = new cron.CronJob('0 */2 * * *', async function() {
+    //     update_shop_items();
+    // }, null, true, 'Europe/Bratislava');
     
 });
 bot.on('messageCreate', message => {
