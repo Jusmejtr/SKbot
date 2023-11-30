@@ -116,10 +116,6 @@ module.exports = {
             return false;
         }
 
-        if(message.content === PREFIX + "test"){
-            console.log(server_music[message.guild.id]);
-        }
-
         if(message.content.startsWith(PREFIX + "radio")){
             let voiceChannel = message.member.voice.channel;
             if(!voiceChannel) return message.reply("You need to be in voice channel");
