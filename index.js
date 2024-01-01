@@ -185,7 +185,7 @@ bot.on("ready", () => {
     //skbot
     
     var narodeniny12 = new cron.CronJob('00 00 10 2 0 *', function() {
-        bot.channels.cache.get("472822895098200066").send("Tretie výročie SKbota na serveri 🎉");
+        bot.channels.cache.get("472822895098200066").send("Štvrté výročie SKbota na serveri 🎉");
     }, null, true, 'Europe/Bratislava');
 
     let fortuna_users = ['452773419105255435', '421391887698755587', '479222589294641154', '420237481536126988'];

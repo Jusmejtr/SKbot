@@ -8,7 +8,7 @@ module.exports = {
         const play_dl = require('play-dl');
 
         const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-        const { joinVoiceChannel, createAudioResource, createAudioPlayer, AudioPlayerStatus, getVoiceConnection  } = require('@discordjs/voice');
+        const { joinVoiceChannel, createAudioResource, createAudioPlayer, AudioPlayerStatus, getVoiceConnection, generateDependencyReport } = require('@discordjs/voice');
 
         async function play(connection){
             let resource;
@@ -41,10 +41,9 @@ module.exports = {
             let resource;
             const player = createAudioPlayer();
             resource = createAudioResource(server_music[message.guild.id].queue[0]);
-
-            player.play(resource);
+            console.log(generateDependencyReport());
             connection.subscribe(player);
-
+            player.play(resource);
         
             server_music[message.guild.id].queue.shift();
             server_music[message.guild.id].currentlyPlaying = server_music[message.guild.id].song_names[0];
@@ -53,7 +52,7 @@ module.exports = {
 
             player.on(AudioPlayerStatus.Idle, function(){
                 if(server_music[message.guild.id].queue[0]){
-                    play(connection);
+                    play_radio(connection);
                 }else{
                     connection.destroy();
                     remove_queue();
