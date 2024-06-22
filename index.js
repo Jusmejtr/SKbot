@@ -188,6 +188,7 @@ bot.on("ready", () => {
         bot.channels.cache.get("472822895098200066").send("Štvrté výročie SKbota na serveri 🎉");
     }, null, true, 'Europe/Bratislava');
 
+    /*
     let fortuna_users = ['452773419105255435', '421391887698755587', '479222589294641154', '420237481536126988'];
 
     var repeat_time = new cron.CronJob('0 16 * * 2-4', function() {
@@ -199,7 +200,7 @@ bot.on("ready", () => {
             bot.guilds.cache.get(skplayersID).members.cache.get(f_user).send({embeds: [embed]});
         });
     }, null, true, 'Europe/Bratislava');
-    
+    */
     
     
     //na buy name/vip

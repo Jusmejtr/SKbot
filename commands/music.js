@@ -4,8 +4,8 @@ module.exports = {
 
     async execute(bot, message, config, server_music, fs){
         const PREFIX = (config.prefix);
-        //const ytdl = require("ytdl-core");
-        const play_dl = require('play-dl');
+        const ytdl = require("ytdl-core");
+        const ytSearch = require("yt-search");
 
         const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
         const { joinVoiceChannel, createAudioResource, createAudioPlayer, AudioPlayerStatus, getVoiceConnection, generateDependencyReport } = require('@discordjs/voice');
@@ -14,10 +14,8 @@ module.exports = {
             let resource;
             const player = createAudioPlayer();
 
-            let stream = await play_dl.stream(server_music[message.guild.id].queue[0]);
-            resource = createAudioResource(stream.stream, {
-                inputType: stream.type
-            });
+            let stream = ytdl(server_music[message.guild.id].queue[0], { filter: 'audioonly' });
+            resource = createAudioResource(stream);
 
             player.play(resource);
             connection.subscribe(player);
@@ -41,7 +39,7 @@ module.exports = {
             let resource;
             const player = createAudioPlayer();
             resource = createAudioResource(server_music[message.guild.id].queue[0]);
-            console.log(generateDependencyReport());
+            //console.log(generateDependencyReport());
             connection.subscribe(player);
             player.play(resource);
         
@@ -148,122 +146,56 @@ module.exports = {
             }
 
             if(isNaN(args[1])){
-                if(args[1].startsWith("https://www.youtube.com/watch?v=") || args[1].startsWith("https://youtu.be/")){
+                if(args[1].startsWith("https://www.youtube.com/watch?v=") || args[1].startsWith("https://youtube.com/watch?v=") || args[1].startsWith("https://youtu.be/")){
                     server_music[message.guild.id].queue.push(args[1]);
                     server_music[message.guild.id].song_names.push(args[1]);
                     message.reply(`Added to queue: ${args[1]}`);
                     return run_play();
                 }else{
-                    // switch (args[1]) {
-                    //     case "z-Rocket":
-                    //         var files = fs.readFileSync('./songs/playlist-RocketLeague.txt', 'utf-8');
-                    //         files.split(/\r?\n/).forEach(line =>  {
-                    //             queue.push(line);
-                    //         });
-                    //         message.reply("Playing playlist: **Rocket**");
-                    //         break;
-                    //     case "z-Kuky":
-                    //         var files2 = fs.readFileSync('./songs/playlist-Kuky.txt', 'utf-8');
-                    //         files2.split(/\r?\n/).forEach(line =>  {
-                    //             queue.push(line);
-                    //         });
-                    //         message.reply("Playing playlist: **Kuky**");
-                    //         break;
-                    //     default:
-                    //         let sprava = message.content.split("play ")[1];
-                    //         console.log(sprava);
-                    //         error = true;
-                    //         break;
-                    // }
                     let yt_songy = message.content.split("play ")[1];
-                    let yt_info = await play_dl.search(yt_songy, {
-                        limit: 5
-                    });
+                    let yt_info = await ytSearch(yt_songy);
+                    let videos = yt_info.videos.slice(0, 5);
                     let embed = new EmbedBuilder();
                     embed.setTitle("MUSIC SEARCH");
                     embed.setColor("#431529");
                     
-                    for(let i=1; i<=5; i++){
-                        if(yt_info[i-1] == null) continue;
-                        embed.addFields({name: `**${i}.**`, value: `${yt_info[i-1].title} (${yt_info[i-1].durationRaw})`});
+                    for(let i=0; i<videos.length; i++){
+                        embed.addFields({name: `**${i+1}.**`, value: `${videos[i].title} (${videos[i].duration.timestamp})`});
                     }
 
                     const filter = i => i.user.id === message.author.id;
 
-                    const tlacidla = new ActionRowBuilder()
-                    .addComponents(
-                        new ButtonBuilder()
-                        .setCustomId('prvy')
-                        .setLabel('1.')
-                        .setStyle(ButtonStyle.Primary)
-                    )
-                    .addComponents(
-                        new ButtonBuilder()
-                        .setCustomId('druhy')
-                        .setLabel('2.')
-                        .setStyle(ButtonStyle.Primary)
-                    )
-                    .addComponents(
-                        new ButtonBuilder()
-                        .setCustomId('treti')
-                        .setLabel('3.')
-                        .setStyle(ButtonStyle.Primary)
-                    )
-                    .addComponents(
-                        new ButtonBuilder()
-                        .setCustomId('stvrty')
-                        .setLabel('4.')
-                        .setStyle(ButtonStyle.Primary)
-                    )
-                    .addComponents(
-                        new ButtonBuilder()
-                        .setCustomId('piaty')
-                        .setLabel('5.')
-                        .setStyle(ButtonStyle.Primary)
-                    )
+                    const buttonComponents = [];
+                    for (let i = 0; i < videos.length; i++) {
+                        const customId = `${i + 1}`;
+                        buttonComponents.push(
+                            new ButtonBuilder()
+                                .setCustomId(customId)
+                                .setLabel(`${i + 1}.`)
+                                .setStyle(ButtonStyle.Primary)
+                        );
+                    }
 
+                    const row = new ActionRowBuilder().addComponents(...buttonComponents);
 
-                    message.reply({ embeds: [embed], components: [tlacidla]}).then(reakcia => {
+                    message.reply({ embeds: [embed], components: [row]}).then(reac => {
 
-                        const collector = reakcia.createMessageComponentCollector({ filter, max:1, time: 8000 });
+                        const collector = reac.createMessageComponentCollector({ filter, max:1, time: 8000 });
                         collector.on('collect', reaction => {
                             reaction.deferUpdate();
-                            if (reaction.customId == 'prvy') {
-                                message.reply(`Added to queue: ${yt_info[0].title} (${yt_info[0].durationRaw})`);
-                                server_music[message.guild.id].queue.push(yt_info[0].url);
-                                server_music[message.guild.id].song_names.push(yt_info[0].title);
-                                reakcia.delete();
-                                return run_play();
-                            }else if (reaction.customId === 'druhy') {
-                                message.reply(`Added to queue: ${yt_info[1].title} (${yt_info[1].durationRaw})`);
-                                server_music[message.guild.id].queue.push(yt_info[1].url);
-                                server_music[message.guild.id].song_names.push(yt_info[1].title);
-                                reakcia.delete();
-                                return run_play();
-                            }else if (reaction.customId === 'treti') {
-                                message.reply(`Added to queue: ${yt_info[2].title} (${yt_info[2].durationRaw})`);
-                                server_music[message.guild.id].queue.push(yt_info[2].url);
-                                server_music[message.guild.id].song_names.push(yt_info[2].title);
-                                reakcia.delete();
-                                return run_play();
-                            }else if(reaction.customId === 'stvrty'){
-                                message.reply(`Added to queue: ${yt_info[3].title} (${yt_info[3].durationRaw})`);
-                                server_music[message.guild.id].queue.push(yt_info[3].url);
-                                server_music[message.guild.id].song_names.push(yt_info[3].title);
-                                reakcia.delete();
-                                return run_play();
-                            }else if(reaction.customId === 'piaty'){
-                                message.reply(`Added to queue: ${yt_info[4].title} (${yt_info[4].durationRaw})`);
-                                server_music[message.guild.id].queue.push(yt_info[4].url);
-                                server_music[message.guild.id].song_names.push(yt_info[4].title);
-                                reakcia.delete();
+                            const index = parseInt(reaction.customId) - 1;
+                            if (videos[index]) {
+                                message.reply(`Added to queue: ${videos[index].title} (${videos[index].duration.timestamp})`);
+                                server_music[message.guild.id].queue.push(videos[index].url);
+                                server_music[message.guild.id].song_names.push(videos[index].title);
                                 return run_play();
                             }
+                            reac.delete();
                         });
                         collector.on('end', collected => {
-                            if(collected.size == 0) return message.reply("Nestihol si pridať reakciu");
+                            if(collected.size == 0) return message.reply("You have not added any reaction");
                         });
-                    });                
+                    });     
                 }
             }else{
                 if(args[1] <= 0) return message.reply("Neexistujúca pozícia");
@@ -311,9 +243,9 @@ module.exports = {
             }
             let embed = new EmbedBuilder();
             embed.setTitle("QUEUE");
-            embed.setColor("ab45af");
-            if(sum != 0){
-                for(let i=0; i < sum; i++){
+            embed.setColor("#4a48b9");
+            if(sum > 0){
+                for(let i = 0; i<sum; i++){
                     embed.addFields({name: "Song:", value: server_music[message.guild.id].song_names[i].toString()});
                 }
                 embed.setFooter({text:`Songs in queue: ${server_music[message.guild.id].queue.length}`});

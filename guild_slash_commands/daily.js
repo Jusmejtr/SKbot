@@ -62,13 +62,10 @@ module.exports = {
                 return interaction.reply({embeds: [embed]});
             }
             else{
-                console.log(isVIP);
                 if(isVIP){
                     peniaze += rewardVIP;
                     db.collection('economy').doc(interaction.user.id).update({
-                        'money': peniaze
-                    });
-                    db.collection('economy').doc(interaction.user.id).update({
+                        'money': peniaze,
                         'daily': cas
                     });
                     embed.description = `You have earned your VIP daily reward worth **${rewardVIP}**. Now you have ${peniaze}`;
@@ -76,10 +73,8 @@ module.exports = {
                 }else{
                     peniaze += reward;
                     db.collection('economy').doc(interaction.user.id).update({
-                        'money': peniaze
-                    });
-                    db.collection('economy').doc(interaction.user.id).update({
-                        'daily': cas
+                        'money': peniaze,
+                        'daily' : cas
                     });
                     embed.description = `You have earned your daily reward worth **${reward}**. Now you have ${peniaze}`;
                     return interaction.reply({embeds: [embed]});
