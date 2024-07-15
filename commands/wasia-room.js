@@ -1,10 +1,12 @@
+require('dotenv').config();
+
 module.exports = {
     name: 'wasia-room',
     description: 'permission to wasia room',
-    execute(message, config){
-        const PREFIX = (config.prefix);
-        const admin = (config.admin);
-        const helper = (config.helper);
+    execute(message) {
+        const PREFIX = process.env.PREFIX;
+        const helper = process.env.MODERATOR_ROLE_ID;
+        const admin = process.env.ADMIN_ROLE_ID;
 
         if (message.content.startsWith(PREFIX + "addrole")) {
             message.delete();
@@ -12,7 +14,7 @@ module.exports = {
             let args = message.content.split(" ");
             let uzivatel = args[1];
 
-            if (author.roles.cache.get(admin) || author.roles.cache.get(helper)){
+            if (author.roles.cache.get(admin) || author.roles.cache.get(helper)) {
                 uzivatel = message.mentions.members.first();
                 if (uzivatel) {
                     let hrac = message.guild.members.resolve(uzivatel);
@@ -26,8 +28,8 @@ module.exports = {
                 }
 
             }
-        else{
-            message.channel.send("Na tento príkaz nemáš pŕava");
+            else {
+                message.channel.send("Na tento príkaz nemáš pŕava");
             }
         }
         if (message.content.startsWith(PREFIX + "deleterole")) {
@@ -36,21 +38,21 @@ module.exports = {
             let args = message.content.split(" ");
             let uzivatel = args[1];
 
-            if (author.roles.cache.get(admin) || author.roles.cache.get(helper)){
-            uzivatel = message.mentions.members.first();
-            if (uzivatel) {
-                let hrac = message.guild.members.resolve(uzivatel);
-                if (hrac) {
-                    hrac.roles.remove("654364963376332841");
+            if (author.roles.cache.get(admin) || author.roles.cache.get(helper)) {
+                uzivatel = message.mentions.members.first();
+                if (uzivatel) {
+                    let hrac = message.guild.members.resolve(uzivatel);
+                    if (hrac) {
+                        hrac.roles.remove("654364963376332841");
+                    } else {
+                        message.reply("Tento užívateľ neexistuje")
+                    }
                 } else {
-                    message.reply("Tento užívateľ neexistuje")
+                    message.reply("Chybné údaje");
                 }
-            } else {
-                message.reply("Chybné údaje");
-            }
 
             }
-            else{
+            else {
                 message.channel.send("Na tento príkaz nemáš pŕava");
             }
         }

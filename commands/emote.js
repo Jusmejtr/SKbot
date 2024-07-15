@@ -1,9 +1,11 @@
+require('dotenv').config();
+
 module.exports = {
     name: 'emote',
     description: 'emotky',
-    async execute(bot, message, config){
-        const PREFIX = (config.prefix);
-        const skplayers = (config.skplayersID);
+    async execute(bot, message){
+        const PREFIX = process.env.PREFIX;
+        const skplayers = process.env.SERVER_ID;
         let regex = /\:[a-zA-z0-9]{2,}\:/g;
 
         const { EmbedBuilder, WebhookClient, MessageType } = require('discord.js');

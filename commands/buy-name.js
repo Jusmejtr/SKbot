@@ -1,11 +1,11 @@
+require('dotenv').config();
+
 module.exports = {
     name: 'buy-name',
     description: 'buy color name',
-    execute(bot, message, config, db){
-        const PREFIX = (config.prefix);
-        const helper = (config.helper);
-        const vip = (config.vip);
-        const sbs = (config.sbs);
+    execute(bot, message, db){
+        const PREFIX = process.env.PREFIX;
+        const logs_channel = process.env.LOGS_CHANNEL_ID;
         
         const { EmbedBuilder } = require('discord.js');
 
@@ -59,7 +59,7 @@ module.exports = {
                         db.collection('economy').doc(uzivatel).update({
                             'money': hodnota
                         });
-                        bot.channels.cache.get("686650199904616456").send(`${message.author.tag} si kupil farebne meno na ${kolko}`);
+                        bot.channels.cache.get(logs_channel).send(`${message.author.tag} si kupil farebne meno na ${kolko}`);
                         let numbersOfRoles = message.guild.roles.cache.size;
                         numbersOfRoles -= 2;
                         message.guild.roles.create({

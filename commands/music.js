@@ -2,13 +2,15 @@ const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('
 const { joinVoiceChannel, createAudioResource, createAudioPlayer, AudioPlayerStatus, getVoiceConnection } = require('@discordjs/voice');
 const ytdl = require('ytdl-core');
 const ytSearch = require('yt-search');
+const fs = require('fs');
+require('dotenv').config();
 
 module.exports = {
     name: "music",
     description: "play a music",
 
-    async execute(bot, message, config, server_music, fs) {
-        const PREFIX = config.prefix;
+    async execute(bot, message, server_music) {
+        const PREFIX = process.env.PREFIX;
 
         async function play(connection) {
             const player = createAudioPlayer();

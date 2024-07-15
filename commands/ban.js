@@ -1,9 +1,11 @@
+require('dotenv').config();
+
 module.exports = {
     name: "ban",
     description: "ban a user",
 
-    execute(message, config){
-        const PREFIX = (config.prefix);
+    execute(message){
+        const PREFIX = process.env.PREFIX;
 
         if (message.content.startsWith(PREFIX + "ban")) {
             let uzivatel = message.mentions.members.first();

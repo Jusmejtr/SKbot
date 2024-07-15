@@ -1,9 +1,12 @@
+require('dotenv').config();
+
 module.exports = {
     name: 'pay',
     description: 'transfer money to someone',
-    execute(message, config, db){
+    execute(message, db){
 
-        const PREFIX = (config.prefix);
+        const PREFIX = process.env.PREFIX;
+        
         if (message.content.startsWith(PREFIX + "transfer")) {
             //message.delete();
             let args = message.content.split(" ");

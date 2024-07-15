@@ -1,22 +1,20 @@
+require('dotenv').config();
+
 module.exports = {
     name: 'gamble',
     description: 'gamble with your coins',
-    execute(message, config, db){
-        const PREFIX = (config.prefix);
-        const vip = (config.vip);
-        const admin = (config.admin);
-        const helper = (config.helper);
-        const sbs = (config.sbs);
+    execute(message, db){
+        const PREFIX = process.env.PREFIX;
+        const vip = process.env.VIP_ROLE_ID;
+        const admin = process.env.ADMIN_ROLE_ID;
+        const helper = process.env.MODERATOR_ROLE_ID;
+        const sbs = process.env.SBS_ROLE_ID;
         
-        const { EmbedBuilder, ReactionCollector } = require('discord.js');
+        const { EmbedBuilder } = require('discord.js');
 
         if(message.content.startsWith(PREFIX + "gamble")){
             //message.delete();
-     
-            if(message.channel.id == 786141470963793942 || message.channel.id == 635918396596289536){
-                return message.reply(`Tento text channel nie je určený na gamble. Použi: <#817745671075528714>`);
-            }
-            console.log("idem");
+
             var uzivatel = message.member.user.id;
             let args = message.content.split(" ");
             if(!args[1]) return message.reply("nezadal si čiastku stávky");

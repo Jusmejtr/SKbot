@@ -1,8 +1,10 @@
+require('dotenv').config();
+
 module.exports = {
     name: 'random-cislo',
     description: 'generate random number',
-    execute(message, config){
-        const PREFIX = (config.prefix);
+    execute(message,){
+        const PREFIX = process.env.PREFIX;
 
         const { EmbedBuilder } = require('discord.js');
 

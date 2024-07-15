@@ -1,10 +1,12 @@
+require('dotenv').config();
+
 module.exports = {
     name: 'economy',
     description: 'send economy commands',
-    execute(message, config){
+    execute(message){
 
-        const PREFIX = (config.prefix);
-
+        const PREFIX = process.env.PREFIX;
+        
         const { EmbedBuilder } = require('discord.js');
 
         if (message.content === PREFIX + "economy") {

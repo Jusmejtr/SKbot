@@ -1,8 +1,10 @@
+require('dotenv').config();
+
 module.exports = {
     name: 'random-team',
     description: 'generate random team',
-    execute(message, config){
-        const PREFIX = (config.prefix);
+    execute(message){
+        const PREFIX = process.env.PREFIX;
 
         const { EmbedBuilder } = require('discord.js');
 

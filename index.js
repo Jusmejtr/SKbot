@@ -8,35 +8,25 @@ const bot = new Client({ intents: [
     GatewayIntentBits.GuildPresences,
     GatewayIntentBits.MessageContent
     ] });
-const config = require("./config.json");
+
+require('dotenv').config();
+
 const cron = require("cron");
 const fetch = require("node-fetch");
 
 
-const PREFIX = (config.prefix);
-const vip = (config.vip);
-const helper = (config.helper);
-const sbs = (config.sbs);
+const PREFIX = process.env.PREFIX;
+const vip = process.env.VIP_ROLE_ID;
+const helper = process.env.MODERATOR_ROLE_ID;
+const sbs = process.env.SBS_ROLE_ID;
 
 //variables for music
 var server_music = {};
 
-const skplayersID = (config.skplayersID);
+const skplayersID = process.env.SERVER_ID;
 //admina nedavaj, je v db line:39
 
-bot.login(config.token);
-
-var version = '0.5.1';
-//0.1 zaklad
-//0.1.1 ping
-//0.1.2 na golf
-//0.2 random cislo
-//0.2.1 vylepseny ping
-//0.3 prune
-//0.4 random mapa
-//0.5 kick a ban
-//0.5.1 wasia room
-//1.0 commandy osobitne
+bot.login(process.env.DISCORD_TOKEN);
 
 const fs = require('fs');
 bot.commands = new Collection();
@@ -78,6 +68,7 @@ const firebase = require('firebase/app');
 const FieldValue = require('firebase-admin').firestore.FieldValue;
 const admin = require('firebase-admin');
 const serviceAccount = require('./serviceAccount.json');
+const { ProjectConfig } = require('firebase-admin/auth');
 
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount)
@@ -85,7 +76,7 @@ admin.initializeApp({
 let db = admin.firestore();
 let fielddb = FieldValue;
 
-const rest = new REST().setToken(config.token);
+const rest = new REST().setToken(process.env.DISCORD_TOKEN);
 
 (async () => {
 	try {
@@ -377,43 +368,43 @@ bot.on("ready", () => {
 bot.on('messageCreate', message => {
     if (message.guild && message.guild.id === skplayersID){//sk players server
         
-        bot.commands.get('wasia-room').execute(message, config);
+        bot.commands.get('wasia-room').execute(message);
 
-        bot.commands.get('balance').execute(bot, message, config, db);//
+        bot.commands.get('balance').execute(bot, message, db);
 
-        bot.commands.get('createaccount').execute(message, config, db);//
+        bot.commands.get('createaccount').execute(message, db);
     
-        bot.commands.get('daily').execute(message, config, db);//
+        bot.commands.get('daily').execute(message, db);
     
-        bot.commands.get('buy-vip').execute(bot, message, config, db);//
+        bot.commands.get('buy-vip').execute(bot, message, db);
     
-        bot.commands.get('addmoney').execute(bot, message, config, db);
+        bot.commands.get('addmoney').execute(bot, message, db);
     
-        bot.commands.get('removemoney').execute(bot, message, config, db);
+        bot.commands.get('removemoney').execute(bot, message, db);
     
-        bot.commands.get('buy-name').execute(bot, message, config, db);//
+        bot.commands.get('buy-name').execute(bot, message, db);
     
-        bot.commands.get('shop').execute(message, config);//
+        bot.commands.get('shop').execute(message);
     
-        bot.commands.get('economy').execute(message, config);//
+        bot.commands.get('economy').execute(message);
     
-        bot.commands.get('buy-mute').execute(message, config, db);//
+        bot.commands.get('buy-mute').execute(message, db);
 
-        bot.commands.get('gamble').execute(message, config, db);//
+        bot.commands.get('gamble').execute(message, db);
     
-        bot.commands.get('pay').execute(message, config, db);//
+        bot.commands.get('pay').execute(message, db);
     
-        bot.commands.get('jackpot').execute(bot, message, config, db);//
+        bot.commands.get('jackpot').execute(message, db);
         
-        bot.commands.get('statistiky').execute(bot, message, config, db);//
+        bot.commands.get('statistiky').execute(bot, message, db);
 
-        bot.commands.get('top').execute(message, config, db);//
+        bot.commands.get('top').execute(message, db);
     
-        bot.commands.get('buy-voicemute').execute(message, config, db);//
+        bot.commands.get('buy-voicemute').execute(message, db);
             
-        bot.commands.get('web').execute(message, config, db, fielddb);
+        bot.commands.get('web').execute(message, db, fielddb);
     
-        bot.commands.get('multiply').execute(message, config, db);  //
+        bot.commands.get('multiply').execute(message, db);
      
 
         /*
@@ -530,31 +521,31 @@ bot.on('messageCreate', message => {
         //     });
         // }
     }
-    bot.commands.get('help').execute(message, config);//
+    bot.commands.get('help').execute(message);
 
-    bot.commands.get('maps').execute(message, config);//
+    bot.commands.get('maps').execute(message);
 
-    bot.commands.get('otazka').execute(message, config);//
+    bot.commands.get('otazka').execute(message);
 
-    bot.commands.get('prune').execute(bot, message, config);//
+    bot.commands.get('prune').execute(bot, message);
 
-    bot.commands.get('random-team').execute(message, config);//
+    bot.commands.get('random-team').execute(message);
 
-    bot.commands.get('random-cislo').execute(message, config);//
+    bot.commands.get('random-cislo').execute(message);
 
-    bot.commands.get('iq').execute(message, config);//
+    bot.commands.get('iq').execute(message);
 
-    bot.commands.get('cicina').execute(message, config);//
+    bot.commands.get('cicina').execute(message);
     
-    bot.commands.get('global-updates').execute(message, config, db, fielddb);//
+    bot.commands.get('global-updates').execute(message, db, fielddb);
 
-    bot.commands.get('kick').execute(message, config);//
+    bot.commands.get('kick').execute(message);
 
-    bot.commands.get('ban').execute(message, config);//
+    bot.commands.get('ban').execute(message);
 
-    bot.commands.get('emote').execute(bot, message, config);//
+    bot.commands.get('emote').execute(bot, message);
 
-    bot.commands.get('music').execute(bot, message, config, server_music, fs);
+    bot.commands.get('music').execute(bot, message, server_music);
 
 });
 
@@ -616,9 +607,9 @@ bot.on('interactionCreate', async (interaction) => {
     //const guild_command = bot.guild_slash_commands.get(interaction.commandName);
 
     if(interaction.commandGuildId == null){//global command
-        bot.global_slash_commands.get(interaction.commandName).execute(interaction, db, config);
+        bot.global_slash_commands.get(interaction.commandName).execute(interaction, db);
     }else{//guild command
-        bot.guild_slash_commands.get(interaction.commandName).execute(interaction, db, config);
+        bot.guild_slash_commands.get(interaction.commandName).execute(interaction, db);
     }
 
     //if(!guild_command || !global_command) return;

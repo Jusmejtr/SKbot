@@ -1,9 +1,11 @@
+require('dotenv').config();
+
 module.exports = {
     name: 'createaccount',
     description: 'vytvorenie uctu',
-    async execute(message, config, db){
+    async execute(message, db){
 
-        const PREFIX = (config.prefix);
+        const PREFIX = process.env.PREFIX;
         if (message.content === PREFIX + "createaccount") {
             //message.delete();
 

@@ -1,19 +1,16 @@
+require('dotenv').config();
+
 module.exports = {
     name: "multiply",
     description: "multiply your coins",
 
-    execute(message, config, db){
-        const PREFIX = (config.prefix);
-        const botspam = (config.botspamID);
+    execute(message, db){
+        const PREFIX = process.env.PREFIX;
 
         const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 
         if(message.content.startsWith(PREFIX + "multiply")){
             //message.delete();
-
-            if(message.channel.id == 786141470963793942 || message.channel.id == 635918396596289536){
-                return message.reply(`Tento text channel nie je určený na multiply. Použi: <#${botspam}>`);
-            }
 
             var uzivatel = message.member.user.id;
             let args = message.content.split(" ");

@@ -1,8 +1,11 @@
+require('dotenv').config();
+
 module.exports = {
     name: 'jackpot',
     description: 'jackpot game',
-    execute(bot, message, config, db){
-        const PREFIX = (config.prefix);
+    execute(message, db){
+        const PREFIX = process.env.PREFIX;
+        
         const fs = require('fs');
         const { EmbedBuilder } = require('discord.js');
         if (message.content.startsWith(PREFIX + "jackpot")) {

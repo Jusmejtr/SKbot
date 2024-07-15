@@ -1,13 +1,14 @@
+require('dotenv').config();
+
 module.exports = {
     name: "cicina",
     description: "generate cicna",
 
-    execute(message, config){
-        const PREFIX = (config.prefix);
+    execute(message){
+        const PREFIX = process.env.PREFIX;
         const { EmbedBuilder } = require('discord.js');
 
         if (message.content === PREFIX + "cicina") {
-            let meno = message.member.user.tag;
             let cislo = Math.floor(Math.random() * 30) + 0;
             let embed = new EmbedBuilder()
                 .setTitle(`Veľkosť tvojej ciciny je ${cislo} cm aj v studenej vode.`)

@@ -1,14 +1,15 @@
+require('dotenv').config();
+
 module.exports = {
     name: 'help',
     description: 'send bots commands',
-    execute(message, config){
+    execute(message){
 
-        const PREFIX = (config.prefix);
+        const PREFIX = process.env.PREFIX;
 
-        const admin = (config.admin);
-        const helper = (config.helper);
-        const sbs = (config.sbs);
-        const skplayers = (config.skplayersID);
+        const helper = process.env.MODERATOR_ROLE_ID;
+        const sbs = process.env.SBS_ROLE_ID;
+        const skplayers = process.env.SERVER_ID;
 
         const { EmbedBuilder } = require('discord.js');
 

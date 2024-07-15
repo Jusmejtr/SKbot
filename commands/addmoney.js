@@ -1,9 +1,11 @@
+require('dotenv').config();
+
 module.exports = {
     name: 'addmoney',
     description: 'add money to someone',
-    execute(bot, message, config, db){
-        const PREFIX = (config.prefix);
-        const admin = (config.admin);
+    execute(bot, message, db){
+        const PREFIX = process.env.PREFIX;
+        const admin = process.env.ADMIN_ROLE_ID;
         var hodnota=0;
 
         if (message.content.startsWith(PREFIX + "addmoney")) {

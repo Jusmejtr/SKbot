@@ -1,9 +1,11 @@
+require('dotenv').config();
+
 module.exports = {
     name: "global-updates",
     description: "send game updates message to servers",
-    execute(message, config, db, fielddb){
+    execute(message, db, fielddb){
 
-        const PREFIX = (config.prefix);
+        const PREFIX = process.env.PREFIX;
 
         const { EmbedBuilder, PermissionsBitField } = require('discord.js');
 

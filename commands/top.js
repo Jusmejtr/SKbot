@@ -1,13 +1,16 @@
+require('dotenv').config();
+
 module.exports = {
     name: "top",
     description: "leaderboard of top users coins",
 
-    async execute(message, config, db){
+    async execute(message, db){
 
-        const PREFIX = (config.prefix);
-        const vip = (config.vip);
-        const helper = (config.helper);
-        const sbs = (config.sbs);
+        const PREFIX = process.env.PREFIX;
+        const vip = process.env.VIP_ROLE_ID;
+        const helper = process.env.MODERATOR_ROLE_ID;
+        const sbs = process.env.SBS_ROLE_ID;
+        
         const { EmbedBuilder } = require('discord.js');
 
         if(message.content === PREFIX + "top"){

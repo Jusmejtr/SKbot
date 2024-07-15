@@ -1,9 +1,11 @@
+require('dotenv').config();
+
 module.exports = {
     name: 'shop',
     description: 'send shop',
-    execute(message, config){
+    execute(message){
 
-        const PREFIX = (config.prefix);
+        const PREFIX = process.env.PREFIX;
 
         if (message.content === PREFIX + "shop") {
             const shopik = {

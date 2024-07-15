@@ -1,13 +1,14 @@
+require('dotenv').config();
+
 module.exports = {
     name: 'web',
     description: 'connection with web',
-    execute(message, config, db, fielddb){
+    execute(message, db, fielddb){
 
-        const PREFIX = (config.prefix);
-        const admin = (config.admin);
-        const helper = (config.helper);
-        const sbs = (config.sbs);
-        const vip = (config.vip);
+        const PREFIX = process.env.PREFIX;
+        const helper = process.env.MODERATOR_ROLE_ID;
+        const sbs = process.env.SBS_ROLE_ID;
+        const vip = process.env.VIP_ROLE_ID;
 
 
         if(message.content.startsWith(PREFIX + "web-reset")){

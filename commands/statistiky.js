@@ -1,9 +1,12 @@
+require('dotenv').config();
+
 module.exports = {
     name: 'statistiky',
     description: 'statistiky na gamble',
-    execute(bot, message, config, db){
+    execute(bot, message, db){
 
-        const PREFIX = (config.prefix);
+        const PREFIX = process.env.PREFIX;
+        
         const { EmbedBuilder } = require('discord.js');
 
         if (message.content.startsWith(PREFIX + "stats")) {

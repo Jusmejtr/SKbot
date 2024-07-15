@@ -1,13 +1,16 @@
+require('dotenv').config();
+
 module.exports = {
     name: 'prune',
     description: 'clear a chat',
-    execute(bot, message, config){
+    execute(bot, message){
 
-    const PREFIX = (config.prefix);
-    const admin = (config.admin);
-    const helper = (config.helper);
-    const sbs = (config.sbs);
-    const skplayersID = (config.skplayersID);
+    const PREFIX = process.env.PREFIX;
+    const admin = process.env.ADMIN_ROLE_ID;
+    const helper = process.env.MODERATOR_ROLE_ID;
+    const sbs = process.env.SBS_ROLE_ID;
+    const skplayersID = process.env.SERVER_ID;
+    const logs_channel = process.env.LOGS_CHANNEL_ID;
 
     const { PermissionsBitField } = require('discord.js');
 
@@ -27,7 +30,7 @@ module.exports = {
             if (author.roles.cache.get(admin) || author.roles.cache.get(helper) || author.roles.cache.get(sbs)) {
                 message.delete().then(() => {
                     message.channel.bulkDelete(args[0]);
-                    bot.channels.cache.get("686650199904616456").send(`${meno} vymazal ${args[0]} sprav v roomke: ${message.channel.name}`);
+                    bot.channels.cache.get(logs_channel).send(`${meno} vymazal ${args[0]} sprav v roomke: ${message.channel.name}`);
                 }).catch(console.error);
             }
             else {

@@ -5,9 +5,9 @@ module.exports = {
     data: new SlashCommandBuilder()
 		.setName('daily')
 		.setDescription('Pick up your daily reward'),
-    execute(interaction, db, config){
+    execute(interaction, db){
 
-        const vip = (config.vip);
+        const vip = process.env.VIP_ROLE_ID;
 
         function msToTime(duration) {
             var milliseconds = parseInt((duration % 1000) / 100),

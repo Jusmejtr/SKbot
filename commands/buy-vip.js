@@ -1,9 +1,12 @@
+require('dotenv').config();
+
 module.exports = {
     name: 'buy-vip',
     description: 'buy items',
-    execute(bot, message, config, db){
-        const PREFIX = (config.prefix);
-        const vip = (config.vip);
+    execute(bot, message, db){
+        const PREFIX = process.env.PREFIX;
+        const vip = process.env.VIP_ROLE_ID;
+        const logs_channel = process.env.LOGS_CHANNEL_ID;
         
         const { EmbedBuilder } = require('discord.js');
 
@@ -38,7 +41,7 @@ module.exports = {
                             'money': hodnota
                         });
                         message.member.roles.add(vip);
-                        bot.channels.cache.get("686650199904616456").send(`${message.author.tag} si kupil vip na ${kolko}`);
+                        bot.channels.cache.get(logs_channel).send(`${message.author.tag} si kupil vip na ${kolko}`);
 
                         let cas = Date.now();
                         let novy_cas = 86400000 * kolko;

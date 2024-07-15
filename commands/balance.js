@@ -1,9 +1,11 @@
+require('dotenv').config();
+
 module.exports = {
     name: 'balance',
     description: 'money command',
-    execute(bot, message, config, db){
+    execute(bot, message, db){
 
-        const PREFIX = (config.prefix);
+        const PREFIX = process.env.PREFIX;
         if (message.content.startsWith(PREFIX + "balance")) {
             //message.delete();
             let args = message.content.split(" ");

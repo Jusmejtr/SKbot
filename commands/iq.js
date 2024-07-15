@@ -1,8 +1,10 @@
+require('dotenv').config();
+
 module.exports = {
     name: 'iq',
     description: 'generate random iq',
-    execute(message, config){
-        const PREFIX = (config.prefix);
+    execute(message){
+        const PREFIX = process.env.PREFIX;
         const { EmbedBuilder } = require('discord.js');
 
         if (message.content === PREFIX + "iq") {

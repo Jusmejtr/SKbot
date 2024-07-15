@@ -1,9 +1,11 @@
+require('dotenv').config();
+
 module.exports = {
     name: "kick",
     description: "kick a user",
 
-    execute(message, config){
-        const PREFIX = (config.prefix);
+    execute(message){
+        const PREFIX = process.env.PREFIX;
 
         if (message.content.startsWith(PREFIX + "kick")) {
             let uzivatel = message.mentions.members.first();

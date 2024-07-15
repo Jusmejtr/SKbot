@@ -1,9 +1,11 @@
+require('dotenv').config();
+
 module.exports = {
     name: 'daily',
     description: 'daily rewards',
-    execute(message, config, db){
-        const PREFIX = (config.prefix);
-        const vip = (config.vip);
+    execute(message, db){
+        const PREFIX = process.env.PREFIX;
+        const vip = process.env.VIP_ROLE_ID;
         var hodnota;
         var peniaze;
         

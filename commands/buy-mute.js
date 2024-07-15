@@ -1,9 +1,11 @@
+require('dotenv').config();
+
 module.exports = {
     name: 'buy-mute',
     description: 'buy item to text-mute someone',
-    execute(message, config, db){
-        const PREFIX = (config.prefix);
-        const admin = (config.admin);
+    execute(message, db){
+        const PREFIX = process.env.PREFIX;
+        const admin = process.env.ADMIN_ROLE_ID;
         
         const { EmbedBuilder } = require('discord.js');
 
