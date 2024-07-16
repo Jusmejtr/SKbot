@@ -10,6 +10,7 @@ Functions:
 - economy system
 - game updates
 - mod functions (kick/ban)
+- play music
 
 # How to run
 
