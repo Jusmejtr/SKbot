@@ -1,7 +1,15 @@
 
 # SK bot
 
-My project that i created during high school in my free time.
+My project that i created during high school in my free time for my discord server.
+
+Discord bot was made with Node.js
+
+Functions:
+
+- economy system
+- game updates
+- mod functions (kick/ban)
 
 # How to run
 

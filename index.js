@@ -1,4 +1,4 @@
-const { Client, Collection, EmbedBuilder, GatewayIntentBits, PermissionsBitField, ActivityType, REST, Routes, MessageType } = require('discord.js');
+const { Client, Collection, EmbedBuilder, GatewayIntentBits, PermissionsBitField, ActivityType, REST, Routes } = require('discord.js');
 const bot = new Client({ intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
@@ -20,11 +20,9 @@ const vip = process.env.VIP_ROLE_ID;
 const helper = process.env.MODERATOR_ROLE_ID;
 const sbs = process.env.SBS_ROLE_ID;
 
-//variables for music
-var server_music = {};
+var server_music = {}; // music objec storage
 
 const skplayersID = process.env.SERVER_ID;
-//admina nedavaj, je v db line:39
 
 bot.login(process.env.DISCORD_TOKEN);
 
@@ -101,7 +99,6 @@ const rest = new REST().setToken(process.env.DISCORD_TOKEN);
 		console.log(`Successfully reloaded ${global_data.length} global application (/) commands.`);
 
 	} catch (error) {
-		// And of course, make sure you catch and log any errors!
 		console.error(error);
 	}
 })();
@@ -179,21 +176,6 @@ bot.on("ready", () => {
         bot.channels.cache.get("472822895098200066").send("Štvrté výročie SKbota na serveri 🎉");
     }, null, true, 'Europe/Bratislava');
 
-    /*
-    let fortuna_users = ['452773419105255435', '421391887698755587', '479222589294641154', '420237481536126988'];
-
-    var repeat_time = new cron.CronJob('0 16 * * 2-4', function() {
-        let embed = new EmbedBuilder()
-        .setTitle("Stávka bez rizika")
-        .setURL("https://www.ifortuna.sk/")
-        .setDescription("Aktuálne prebieha akcia stávka bez rizika, tak si nezabudni vložiť peniaze na účet a využiť túto stávku");
-        fortuna_users.forEach((f_user) => {
-            bot.guilds.cache.get(skplayersID).members.cache.get(f_user).send({embeds: [embed]});
-        });
-    }, null, true, 'Europe/Bratislava');
-    */
-    
-    
     //na buy name/vip
     
     var nakup = new cron.CronJob('0 */4 * * *', async function() {//farebne meno
@@ -356,7 +338,7 @@ bot.on("ready", () => {
     //max gamble za den
     var nakup = new cron.CronJob('0 0 * * *', async function() {
         refresh_gamble();
-        refresh_trading();
+        //refresh_trading();
     }, null, true, 'Europe/Bratislava');
 
     //skplayers shop
@@ -462,6 +444,7 @@ bot.on('messageCreate', message => {
             message.member.voice.setChannel(roomka);
 
         }
+        /*
         if(message.content === PREFIX + "shop udpate"){
             if(message.member.permissions.has(PermissionsBitField.Flags.Administrator)){
                 update_shop_items();
@@ -469,7 +452,7 @@ bot.on('messageCreate', message => {
             }else{
                 message.reply("You don't have permission **ADMINISTRATOR**");
             }
-        }
+        }*/
 
 
         /*if(message.content === "*EKFHV"){
@@ -656,6 +639,7 @@ bot.on("voiceStateUpdate", (oldState, newState) => {
 
 
 /* FUNCTIONS */
+
 async function refresh_gamble(){
     const gamble_pocet = db.collection('statistiky');
     const vyber = await gamble_pocet.where('pregamblene', '>', 0).get();
@@ -667,6 +651,7 @@ async function refresh_gamble(){
         });
     });
 }
+/*
 async function refresh_trading(){
     const trading = db.collection('web');
     const vyber = await trading.where('can_buy', '==', 0).get();
@@ -677,8 +662,8 @@ async function refresh_trading(){
             "can_buy": 1,
         });
     });
-}
-
+}*/
+/*
 function update_shop_items(){
     fetch(`https://steamcommunity.com/inventory/76561198818371905/730/2?l=english`)
     .then(response => response.json())
@@ -762,4 +747,4 @@ function update_shop_items(){
     .catch(error => {
         console.error(error);
     });
-}
+}*/
