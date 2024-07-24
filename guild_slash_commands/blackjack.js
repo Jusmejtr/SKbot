@@ -187,10 +187,6 @@ module.exports = {
             }
         }
 
-        function handToString(hand) {
-            return hand.map(card => `**${card.value}** of ${card.suit}`).join(', ');
-        }
-
         async function handleInteraction(collector, buttonInteraction) {
             if (buttonInteraction.customId === 'hit') {
                 collector.resetTimer();
@@ -274,13 +270,13 @@ module.exports = {
 
                 if (playerHandValue.hard > 21) {
                     await interaction.editReply({
-                        content: `Double na ${valueBeforeDouble}. **Máte too many. Prajem viacej šťastia do ďalšieho kola**`,
+                        content: `Double na ${handValueString(playerHandValue)}. **Máte too many. Prajem viacej šťastia do ďalšieho kola**`,
                         files: [new AttachmentBuilder(await generateBlackjackTable(playerHand, dealerHand, true), { name: 'table.png' })],
                         components: []
                     });
                 } else {
                     await interaction.editReply({
-                        content: `Double na ${valueBeforeDouble}. ${getResult(dealerHandValue, playerHandValue, true)}`,
+                        content: `Double na ${handValueString(playerHandValue)}. ${getResult(dealerHandValue, playerHandValue, true)}`,
                         files: [new AttachmentBuilder(await generateBlackjackTable(playerHand, dealerHand, true), { name: 'table.png' })],
                         components: []
                     });
