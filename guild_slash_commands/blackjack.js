@@ -190,6 +190,7 @@ module.exports = {
         async function handleInteraction(collector, buttonInteraction) {
             if (buttonInteraction.customId === 'hit') {
                 collector.resetTimer();
+                const valueBeforeHit = calculateHandValue(playerHand);
                 playerHand.push(deck.pop());
                 const playerHandValue = calculateHandValue(playerHand);
 
@@ -202,7 +203,7 @@ module.exports = {
                         dealerHandValue = calculateHandValue(dealerHand);
                     }
                     await interaction.editReply({
-                        content: `**Žiaľ máte too many, prajem viacej šťastia do ďalšieho kola**`,
+                        content: `Karta na ${handValueString(valueBeforeHit)}. **Žiaľ máte too many, prajem viacej šťastia do ďalšieho kola**`,
                         files: [new AttachmentBuilder(await generateBlackjackTable(playerHand, dealerHand, true), { name: 'table.png' })],
                         components: []
                     });
@@ -218,7 +219,7 @@ module.exports = {
                     }
 
                     await interaction.editReply({
-                        content: `**Gratulujem, máte blackjack. Výhra: ${userBet * 2}**`,
+                        content: `Karta na ${handValueString(valueBeforeHit)}. **Gratulujem, máte blackjack. Výhra: ${userBet * 2}**`,
                         files: [new AttachmentBuilder(await generateBlackjackTable(playerHand, dealerHand, true), { name: 'table.png' })],
                         components: []
                     });
@@ -231,7 +232,7 @@ module.exports = {
                         );
 
                     await buttonInteraction.update({
-                        content: `Aké je Vaše ďalšie rozhodnutie?`,
+                        content: `Karta na ${handValueString(valueBeforeHit)}. **Aké je Vaše ďalšie rozhodnutie?**`,
                         files: [new AttachmentBuilder(await generateBlackjackTable(playerHand, dealerHand, false, true), { name: 'table.png' })],
                         components: [row]
                     });
