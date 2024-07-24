@@ -3,10 +3,10 @@ const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, AttachmentBuilder 
 const path = require('path');
 const { addMoney, removeMoney, getMoney } = require('../utils/economy-db');
 
-var deck = [];
+let deck = [];
 let playerHand = [];
 let dealerHand = [];
-let canDoubleDown = false; // Variable to track if doubling down is allowed
+let canDoubleDown = false;
 let playing = false;
 
 const imgSize = {
@@ -16,31 +16,27 @@ const imgSize = {
     tableHeight: 1300,
     offset: 50,
     spaceBetweenCards: 50
-}
-
+};
 
 module.exports = {
     name: 'balance',
     data: new SlashCommandBuilder()
         .setName('blackjack')
         .setDescription('Let\'s play some blackjack')
-        .addIntegerOption((option) =>
+        .addIntegerOption(option =>
             option.setName('bet').setDescription('Your bet for this game').setRequired(true).setMinValue(20).setMaxValue(1000)
         ),
     async execute(interaction) {
         let userBet = interaction.options.getInteger('bet');
 
-        async function drawTextWithBorderBox(ctx, text, x, y, width, height, fontSize, textColor, borderColor, borderWidth, backgroundColor) {
-            // Nastavenie fontu pre text
+        function drawTextWithBorderBox(ctx, text, x, y, width, height, fontSize, textColor, borderColor, borderWidth, backgroundColor) {
             ctx.font = `${fontSize}px Arial`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
 
-            // Vypočítanie pozície textu
             const textX = x + width / 2;
             const textY = y + height / 2;
 
-            // Kreslenie obdĺžnika s čiernym okrajom
             ctx.fillStyle = backgroundColor;
             ctx.fillRect(x, y, width, height);
 
@@ -48,9 +44,12 @@ module.exports = {
             ctx.strokeStyle = borderColor;
             ctx.strokeRect(x, y, width, height);
 
-            // Vykreslenie textu
             ctx.fillStyle = textColor;
             ctx.fillText(text, textX, textY);
+        }
+
+        function totalCardLength(cards) {
+            return (cards.length * imgSize.cardWidth) + (cards.length - 1) * imgSize.spaceBetweenCards;
         }
 
         async function generateBlackjackTable(playerCards, dealerCards, forcePlayerHardHand, hiddenDealerCard = false) {
@@ -59,35 +58,32 @@ module.exports = {
             const background = await loadImage(path.join(__dirname, '..', 'props', 'table.png'));
             ctx.drawImage(background, 0, 0);
 
+            const loadCardImages = playerCards.concat(hiddenDealerCard ? dealerCards.slice(0, 1) : dealerCards)
+                .map(card => loadImage(path.join(__dirname, '..', 'props', 'cards', `${card.value}_of_${card.suit}.png`)));
+            const [playerImages, dealerImages] = await Promise.all([
+                Promise.all(loadCardImages.slice(0, playerCards.length)),
+                Promise.all(loadCardImages.slice(playerCards.length))
+            ]);
 
-            const totalPlayerCardLength = (playerCards.length * imgSize.cardWidth) + (playerCards.length - 1) * imgSize.spaceBetweenCards;
-            const totalDealerCardLength = (dealerCards.length * imgSize.cardWidth) + (dealerCards.length - 1) * imgSize.spaceBetweenCards;
-            // player
-            for (let i = 0; i < playerCards.length; i++) {
-                const playerImage = await loadImage(path.join(__dirname, '..', 'props', 'cards', `${playerCards[i].value}_of_${playerCards[i].suit}.png`));
-                ctx.drawImage(playerImage, (imgSize.tableWidth / 2) - (totalPlayerCardLength / 2) + (i * (imgSize.cardWidth + imgSize.spaceBetweenCards)), imgSize.tableHeight - imgSize.offset - imgSize.cardHeight, imgSize.cardWidth, imgSize.cardHeight);// render player card
-            }
+            playerImages.forEach((img, i) => {
+                ctx.drawImage(img, (imgSize.tableWidth / 2) - (totalCardLength(playerCards) / 2) + (i * (imgSize.cardWidth + imgSize.spaceBetweenCards)), imgSize.tableHeight - imgSize.offset - imgSize.cardHeight, imgSize.cardWidth, imgSize.cardHeight);
+            });
             const playerHandValue = calculateHandValue(playerCards);
-            drawTextWithBorderBox(ctx, handValueString(playerHandValue, forcePlayerHardHand), imgSize.tableWidth / 2 - 90, imgSize.tableHeight - imgSize.offset - imgSize.cardHeight - 100 - imgSize.offset, 180, 100, 72, '#000000', '#000000', 5, '#FFFFFF'); //player sum
+            drawTextWithBorderBox(ctx, handValueString(playerHandValue, forcePlayerHardHand), imgSize.tableWidth / 2 - 100, imgSize.tableHeight - imgSize.offset - imgSize.cardHeight - 100 - imgSize.offset, 200, 100, 72, '#000000', '#000000', 5, '#FFFFFF');
 
-            //dealer
-            if (hiddenDealerCard == true) {
-                const card = await loadImage(path.join(__dirname, '..', 'props', 'cards', `${dealerCards[0].value}_of_${dealerCards[0].suit}.png`));
+            if (hiddenDealerCard) {
+                ctx.drawImage(dealerImages[0], (imgSize.tableWidth / 2) - imgSize.cardWidth - (imgSize.spaceBetweenCards / 2), imgSize.offset, imgSize.cardWidth, imgSize.cardHeight);
                 const hiddenCard = await loadImage(path.join(__dirname, '..', 'props', 'cards', 'hidden.png'));
-
-                ctx.drawImage(card, (imgSize.tableWidth / 2) - imgSize.cardWidth - (imgSize.spaceBetweenCards / 2), imgSize.offset, imgSize.cardWidth, imgSize.cardHeight);//dealer first card
-                ctx.drawImage(hiddenCard, (imgSize.tableWidth / 2) + (imgSize.spaceBetweenCards / 2), imgSize.offset, imgSize.cardWidth, imgSize.cardHeight);//dealer hidden card
-
-                drawTextWithBorderBox(ctx, dealerCards[0].value, imgSize.tableWidth / 2 - 90, imgSize.cardHeight + 100, 180, 100, 72, '#000000', '#000000', 5, '#FFFFFF'); //dealer sum
+                ctx.drawImage(hiddenCard, (imgSize.tableWidth / 2) + (imgSize.spaceBetweenCards / 2), imgSize.offset, imgSize.cardWidth, imgSize.cardHeight);
+                drawTextWithBorderBox(ctx, dealerCards[0].value, imgSize.tableWidth / 2 - 100, imgSize.cardHeight + 100, 200, 100, 72, '#000000', '#000000', 5, '#FFFFFF');
             } else {
-                for (let i = 0; i < dealerCards.length; i++) {
-                    const dealerImage = await loadImage(path.join(__dirname, '..', 'props', 'cards', `${dealerCards[i].value}_of_${dealerCards[i].suit}.png`));
-
-                    ctx.drawImage(dealerImage, (imgSize.tableWidth / 2) - (totalDealerCardLength / 2) + (i * (imgSize.cardWidth + imgSize.spaceBetweenCards)), imgSize.offset, imgSize.cardWidth, imgSize.cardHeight);// render dealer card             
-                }
+                dealerImages.forEach((img, i) => {
+                    ctx.drawImage(img, (imgSize.tableWidth / 2) - (totalCardLength(dealerCards) / 2) + (i * (imgSize.cardWidth + imgSize.spaceBetweenCards)), imgSize.offset, imgSize.cardWidth, imgSize.cardHeight);
+                });
                 const dealerHandValue = calculateHandValue(dealerCards);
-                drawTextWithBorderBox(ctx, handValueString(dealerHandValue, true), imgSize.tableWidth / 2 - 90, imgSize.cardHeight + 100, 180, 100, 72, '#000000', '#000000', 5, '#FFFFFF'); //dealer
+                drawTextWithBorderBox(ctx, handValueString(dealerHandValue, true), imgSize.tableWidth / 2 - 100, imgSize.cardHeight + 100, 200, 100, 72, '#000000', '#000000', 5, '#FFFFFF');
             }
+
             return canvas.toBuffer();
         }
 
@@ -134,36 +130,29 @@ module.exports = {
         }
 
         function handValueString(handValue, forceHardValue = false) {
-            if (forceHardValue == true) return handValue.hard;
-            if (handValue.soft !== handValue.hard) {
-                return `${handValue.soft}/${handValue.hard}`;
-            }
-            return `${handValue.hard}`;
+            if (forceHardValue) return handValue.hard;
+            return handValue.soft !== handValue.hard ? `${handValue.soft}/${handValue.hard}` : `${handValue.hard}`;
         }
 
         async function validateBet(user, bet) {
             const money = await getMoney(user);
-            if (money == null) {
-                return null;
-            }
-            if (bet > money) return false;
-            return true;
+            return money != null && bet <= money;
         }
 
         async function startBlackjackGame() {
             if (playing) {
-                interaction.editReply("Currently other player is playing blackjack");
+                await interaction.editReply("Currently another player is playing blackjack");
                 return null;
             }
             const validateMoney = await validateBet(interaction.user.id, userBet);
             if (validateMoney == null) {
-                interaction.editReply("You don't have economy account or some error occurred.");
+                await interaction.editReply("You don't have economy account or some error occurred.");
                 return null;
             } else if (validateMoney == false) {
-                interaction.editReply("Sorry, you don't have enough money");
+                await interaction.editReply("Sorry, you don't have enough money");
                 return null;
             }
-            removeMoney(interaction.user.id, userBet);
+            await removeMoney(interaction.user.id, userBet);
             initializeDeck();
             shuffleDeck();
             playing = true;
@@ -182,26 +171,12 @@ module.exports = {
                 playing = false;
                 return null;
             } else {
-                if (await getMoney(interaction.user.id) >= userBet) {
-                    canDoubleDown = true;
-                } else {
-                    canDoubleDown = false;
-                }
+                canDoubleDown = await getMoney(interaction.user.id) >= userBet;
                 const row = new ActionRowBuilder()
                     .addComponents(
-                        new ButtonBuilder()
-                            .setCustomId('hit')
-                            .setLabel('Hit')
-                            .setStyle('Primary'),
-                        new ButtonBuilder()
-                            .setCustomId('stand')
-                            .setLabel('Stand')
-                            .setStyle('Secondary'),
-                        new ButtonBuilder()
-                            .setCustomId('double')
-                            .setLabel('Double')
-                            .setStyle('Success')
-                            .setDisabled(!canDoubleDown)
+                        new ButtonBuilder().setCustomId('hit').setLabel('Hit').setStyle('Primary'),
+                        new ButtonBuilder().setCustomId('stand').setLabel('Stand').setStyle('Secondary'),
+                        new ButtonBuilder().setCustomId('double').setLabel('Double').setStyle('Success').setDisabled(!canDoubleDown)
                     );
                 const gameMessage = await interaction.editReply({
                     content: 'Aké je vaše rozhodnutie?',
@@ -226,7 +201,7 @@ module.exports = {
                     collector.stop("bust");
 
                     let dealerHandValue = calculateHandValue(dealerHand);
-                    while (dealerHandValue.soft < 17) {
+                    while (dealerHandValue.hard < 17) {
                         dealerHand.push(deck.pop());
                         dealerHandValue = calculateHandValue(dealerHand);
                     }
@@ -235,14 +210,13 @@ module.exports = {
                         files: [new AttachmentBuilder(await generateBlackjackTable(playerHand, dealerHand, true), { name: 'table.png' })],
                         components: []
                     });
-
                     playing = false;
                 } else if (playerHandValue.hard === 21) {
                     collector.stop("win");
                     addMoney(interaction.user.id, userBet * 2);
 
                     let dealerHandValue = calculateHandValue(dealerHand);
-                    while (dealerHandValue.soft < 17) {
+                    while (dealerHandValue.hard < 17) {
                         dealerHand.push(deck.pop());
                         dealerHandValue = calculateHandValue(dealerHand);
                     }
@@ -256,14 +230,8 @@ module.exports = {
                 } else {
                     const row = new ActionRowBuilder()
                         .addComponents(
-                            new ButtonBuilder()
-                                .setCustomId('hit')
-                                .setLabel('Hit')
-                                .setStyle('Primary'),
-                            new ButtonBuilder()
-                                .setCustomId('stand')
-                                .setLabel('Stand')
-                                .setStyle('Secondary'),
+                            new ButtonBuilder().setCustomId('hit').setLabel('Hit').setStyle('Primary'),
+                            new ButtonBuilder().setCustomId('stand').setLabel('Stand').setStyle('Secondary'),
                         );
 
                     await buttonInteraction.update({
@@ -275,7 +243,7 @@ module.exports = {
             } else if (buttonInteraction.customId === 'stand') {
                 collector.stop("stand");
                 let dealerHandValue = calculateHandValue(dealerHand);
-                while (dealerHandValue.soft < 17) {
+                while (dealerHandValue.hard < 17) {
                     dealerHand.push(deck.pop());
                     dealerHandValue = calculateHandValue(dealerHand);
                 }
@@ -289,12 +257,20 @@ module.exports = {
 
                 playing = false;
             } else if (buttonInteraction.customId === 'double' && canDoubleDown) {
-                removeMoney(interaction.user.id, userBet);
+                await removeMoney(interaction.user.id, userBet);
                 collector.stop("double");
                 let playerHandValue = calculateHandValue(playerHand);
                 let valueBeforeDouble = playerHandValue.hard;
 
                 playerHand.push(deck.pop());
+
+                playerHandValue = calculateHandValue(playerHand);
+
+                let dealerHandValue = calculateHandValue(dealerHand);
+                while (dealerHandValue.hard < 17) {
+                    dealerHand.push(deck.pop());
+                    dealerHandValue = calculateHandValue(dealerHand);
+                }
 
                 if (playerHandValue.hard > 21) {
                     await interaction.editReply({
@@ -303,11 +279,6 @@ module.exports = {
                         components: []
                     });
                 } else {
-                    let dealerHandValue = calculateHandValue(dealerHand);
-                    while (dealerHandValue.soft < 17) {
-                        dealerHand.push(deck.pop());
-                        dealerHandValue = calculateHandValue(dealerHand);
-                    }
                     await interaction.editReply({
                         content: `Double na ${valueBeforeDouble}. ${getResult(dealerHandValue, playerHandValue, true)}`,
                         files: [new AttachmentBuilder(await generateBlackjackTable(playerHand, dealerHand, true), { name: 'table.png' })],
@@ -320,45 +291,36 @@ module.exports = {
 
         async function handleEnd(interaction, reason) {
             if (reason === 'time') {
-                canDoubleDown = false;
                 let dealerHandValue = calculateHandValue(dealerHand);
-                while (dealerHandValue.soft < 17) {
+                while (dealerHandValue.hard < 17) {
                     dealerHand.push(deck.pop());
                     dealerHandValue = calculateHandValue(dealerHand);
                 }
-                await interaction.channel.send({ content: `Čas vypršal!\nDealer's hand: ${handToString(dealerHand)} (Value: ${handValueString(dealerHandValue)})`, components: [] });
-
                 const playerHandValue = calculateHandValue(playerHand);
-                getResult(dealerHandValue, playerHandValue);
+
+                await interaction.editReply({
+                    content: `Čas vypršal! Stojíme na: ${playerHandValue.hard}. ${getResult(dealerHandValue, playerHandValue)}`,
+                    files: [new AttachmentBuilder(await generateBlackjackTable(playerHand, dealerHand, true), { name: 'table.png' })],
+                    components: []
+                });
             }
             playing = false;
         }
 
         function getResult(dealerHandValue, playerHandValue, double = false) {
             if (dealerHandValue.hard > 21) {
-                if (double == true) {
-                    addMoney(interaction.user.id, userBet * 4);
-                    return `**Dealer má too many, gratulujem k výhre ${parseInt(userBet * 4)}**`;
-                } else {
-                    addMoney(interaction.user.id, userBet * 2);
-                    return `**Dealer má too many, gratulujem k výhre ${parseInt(userBet * 2)}**`;
-                }
+                const winnings = double ? userBet * 4 : userBet * 2;
+                addMoney(interaction.user.id, winnings);
+                return `**Dealer má too many, gratulujem k výhre ${winnings}**`;
             } else if (playerHandValue.hard > dealerHandValue.hard) {
-                if (double == true) {
-                    addMoney(interaction.user.id, userBet * 4);
-                    return `**Gratulujem k výhre ${parseInt(userBet * 4)}**`;
-                } else {
-                    addMoney(interaction.user.id, userBet * 2);
-                    return `**Gratulujem k výhre ${parseInt(userBet * 2)}**`;
-                }
+                const winnings = double ? userBet * 4 : userBet * 2;
+                addMoney(interaction.user.id, winnings);
+                return `**Gratulujem k výhre ${winnings}**`;
             } else if (playerHandValue.hard < dealerHandValue.hard) {
                 return '**V tomto kole vyhráva dealer. Prajem viacej štastia do ďalšieho kola**';
             } else {
-                if (double == true) {
-                    addMoney(interaction.user.id, userBet * 2);
-                } else {
-                    addMoney(interaction.user.id, userBet);
-                }
+                const winnings = double ? userBet * 2 : userBet;
+                addMoney(interaction.user.id, winnings);
                 return '**A je to remíza. Prajem viacej štastia do ďalšieho kola**';
             }
         }
