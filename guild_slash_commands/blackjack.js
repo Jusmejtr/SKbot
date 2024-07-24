@@ -256,7 +256,7 @@ module.exports = {
                 await removeMoney(interaction.user.id, userBet);
                 collector.stop("double");
                 let playerHandValue = calculateHandValue(playerHand);
-                let valueBeforeDouble = playerHandValue.hard;
+                let valueBeforeDouble = playerHandValue;
 
                 playerHand.push(deck.pop());
 
@@ -270,13 +270,13 @@ module.exports = {
 
                 if (playerHandValue.hard > 21) {
                     await interaction.editReply({
-                        content: `Double na ${handValueString(playerHandValue)}. **Máte too many. Prajem viacej šťastia do ďalšieho kola**`,
+                        content: `Double na ${handValueString(valueBeforeDouble)}. **Máte too many. Prajem viacej šťastia do ďalšieho kola**`,
                         files: [new AttachmentBuilder(await generateBlackjackTable(playerHand, dealerHand, true), { name: 'table.png' })],
                         components: []
                     });
                 } else {
                     await interaction.editReply({
-                        content: `Double na ${handValueString(playerHandValue)}. ${getResult(dealerHandValue, playerHandValue, true)}`,
+                        content: `Double na ${handValueString(valueBeforeDouble)}. ${getResult(dealerHandValue, playerHandValue, true)}`,
                         files: [new AttachmentBuilder(await generateBlackjackTable(playerHand, dealerHand, true), { name: 'table.png' })],
                         components: []
                     });
