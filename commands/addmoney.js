@@ -1,37 +1,31 @@
 require('dotenv').config();
+const { addMoney } = require('../utils/economy-db');
 
 module.exports = {
     name: 'addmoney',
     description: 'add money to someone',
-    execute(bot, message, db){
+    async execute(bot, message) {
         const PREFIX = process.env.PREFIX;
         const admin = process.env.ADMIN_ROLE_ID;
-        var hodnota=0;
 
         if (message.content.startsWith(PREFIX + "addmoney")) {
             let args = message.content.split(" ");
             let user = message.mentions.users.first();
-            //message.delete();
-            if (message.member.roles.cache.get(admin)) {
-                if(!user) return message.reply("Nemôžem nájsť tohto užívateľa");
-                if(!args[2]) return message.reply("Zadaj sumu, ktorú chces pripísať na účet");
 
-                db.collection('economy').doc(user.id).get().then((q) => {
-                    if(q.exists){
-                        hodnota = q.data().money;
-                        hodnota += parseInt(args[2]);
+            if (message.member.roles.cache.has(admin)) {
+                if (!user) return message.reply("Nemôžem nájsť tohto užívateľa");
+                if (!args[2]) return message.reply("Zadaj sumu, ktorú chces pripísať na účet");
 
-                        db.collection('economy').doc(user.id).update({
-                            'money': hodnota
-                        }).catch(console.error);
-                        message.reply(`Úspešne si pridal ${args[2]} coinov užívateľovi ${bot.users.cache.get(user.id).username}`);
-                    }
-                    else{
-                        message.reply(`${user.tag} nemá vytvorený účet`);
-                    }
-                }).catch(console.error);
-            }
-            else{
+                let amount = parseInt(args[2]);
+                if (isNaN(amount)) return message.reply("Zadaj platnú sumu");
+
+                let result = await addMoney(user.id, amount);
+                if (result) {
+                    message.reply(`Úspešne si pridal ${amount} coinov užívateľovi ${bot.users.cache.get(user.id).username}`);
+                } else {
+                    message.reply(`${user.tag} nemá vytvorený účet`);
+                }
+            } else {
                 message.reply("Na tento príkaz nemáš práva");
             }
         }

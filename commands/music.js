@@ -209,7 +209,7 @@ module.exports = {
             } else {
                 if (args[1] <= 0) return message.reply("Invalid position");
                 let lineNum = 1;
-                const files = fs.readFileSync('./songs/kuky-band.txt', 'utf-8');
+                const files = fs.readFileSync('./props/songs/kuky-band.txt', 'utf-8');
                 let found = false;
                 files.split(/\r?\n/).forEach(line => {
                     if (args[1] == lineNum) {

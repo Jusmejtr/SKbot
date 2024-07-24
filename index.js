@@ -1,13 +1,15 @@
 const { Client, Collection, EmbedBuilder, GatewayIntentBits, PermissionsBitField, ActivityType, REST, Routes } = require('discord.js');
-const bot = new Client({ intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.GuildMessageReactions,
-    GatewayIntentBits.GuildVoiceStates,
-    GatewayIntentBits.GuildEmojisAndStickers,
-    GatewayIntentBits.GuildPresences,
-    GatewayIntentBits.MessageContent
-    ] });
+const bot = new Client({
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.GuildMessageReactions,
+        GatewayIntentBits.GuildVoiceStates,
+        GatewayIntentBits.GuildEmojisAndStickers,
+        GatewayIntentBits.GuildPresences,
+        GatewayIntentBits.MessageContent
+    ]
+});
 
 require('dotenv').config();
 
@@ -37,7 +39,7 @@ bot.global_slash_commands = new Collection();
 
 
 const commandFiles = fs.readdirSync('./commands/').filter(file => file.endsWith('.js'));
-for(const file of commandFiles){
+for (const file of commandFiles) {
     const command = require(`./commands/${file}`);
 
     bot.commands.set(command.name, command);
@@ -45,7 +47,7 @@ for(const file of commandFiles){
 //guild slash commands
 const guild_slash = fs.readdirSync('./guild_slash_commands/').filter(file => file.endsWith('.js'));
 
-for(const guild_slash_file of guild_slash){
+for (const guild_slash_file of guild_slash) {
     const guild_slash_command = require(`./guild_slash_commands/${guild_slash_file}`);
 
     guild_slash_commands.push(guild_slash_command.data.toJSON());
@@ -54,7 +56,7 @@ for(const guild_slash_file of guild_slash){
 //global slash commands
 const global_slash = fs.readdirSync('./global_slash_commands/').filter(file => file.endsWith('.js'));
 
-for(const global_slash_file of global_slash){
+for (const global_slash_file of global_slash) {
     const global_slash_command = require(`./global_slash_commands/${global_slash_file}`);
 
     global_slash_commands.push(global_slash_command.data.toJSON());
@@ -77,30 +79,30 @@ let fielddb = FieldValue;
 const rest = new REST().setToken(process.env.DISCORD_TOKEN);
 
 (async () => {
-	try {
-		console.log(`Started refreshing ${guild_slash_commands.length} guild application (/) commands.`);
+    try {
+        console.log(`Started refreshing ${guild_slash_commands.length} guild application (/) commands.`);
 
-		// The put method is used to fully refresh all commands in the guild with the current set
-		const data = await rest.put(
-			Routes.applicationGuildCommands('662288447276580875', skplayersID),
-			{ body: guild_slash_commands },
-		);
+        // The put method is used to fully refresh all commands in the guild with the current set
+        const data = await rest.put(
+            Routes.applicationGuildCommands('662288447276580875', skplayersID),
+            { body: guild_slash_commands },
+        );
 
-		console.log(`Successfully reloaded ${data.length} guild application (/) commands.`);
+        console.log(`Successfully reloaded ${data.length} guild application (/) commands.`);
 
         console.log(`Started refreshing ${global_slash_commands.length} global application (/) commands.`);
 
-		// The put method is used to fully refresh all commands in the guild with the current set
-		const global_data = await rest.put(
-			Routes.applicationCommands('662288447276580875'),
-	        { body: global_slash_commands },
-		);
+        // The put method is used to fully refresh all commands in the guild with the current set
+        const global_data = await rest.put(
+            Routes.applicationCommands('662288447276580875'),
+            { body: global_slash_commands },
+        );
 
-		console.log(`Successfully reloaded ${global_data.length} global application (/) commands.`);
+        console.log(`Successfully reloaded ${global_data.length} global application (/) commands.`);
 
-	} catch (error) {
-		console.error(error);
-	}
+    } catch (error) {
+        console.error(error);
+    }
 })();
 
 
@@ -108,81 +110,81 @@ const rest = new REST().setToken(process.env.DISCORD_TOKEN);
 bot.on("ready", () => {
     console.log(`Bot is online! (${bot.guilds.cache.size} servers)`);
 
-    bot.user.setPresence({ activities: [{ name: '*help | skplayers.eu', type: ActivityType.Watching}], status: 'online' });
-    if(!bot.guilds.cache.get(skplayersID)) return;
+    bot.user.setPresence({ activities: [{ name: '*help | skplayers.eu', type: ActivityType.Watching }], status: 'online' });
+    if (!bot.guilds.cache.get(skplayersID)) return;
     //ajax
-    var narodeniny = new cron.CronJob('00 00 10 24 0 *', function() {
+    var narodeniny = new cron.CronJob('00 00 10 24 0 *', function () {
         bot.channels.cache.get("472822895098200066").send("Všetko najlepšie k narodeninám <@202878106472546305> 🎉").then(reakcia => {
             reakcia.react("🎉");
         });
     }, null, true, 'Europe/Bratislava');
     //wasia
-    var narodeniny3 = new cron.CronJob('00 00 10 12 0 *', function() {
+    var narodeniny3 = new cron.CronJob('00 00 10 12 0 *', function () {
         bot.channels.cache.get("472822895098200066").send("Všetko najlepšie k narodeninám <@421391887698755587> 🎉").then(reakcia => {
             reakcia.react("🎉");
         });
     }, null, true, 'Europe/Bratislava');
-    
+
     //jusmejtr
-    var narodeniny4 = new cron.CronJob('00 00 10 26 7 *', function() {
+    var narodeniny4 = new cron.CronJob('00 00 10 26 7 *', function () {
         bot.channels.cache.get("472822895098200066").send("Všetko najlepšie k narodeninám <@452773419105255435> 🎉").then(reakcia => {
             reakcia.react("🎉");
         });
     }, null, true, 'Europe/Bratislava');
-    
+
     //croxy
-    var narodeniny5 = new cron.CronJob('00 00 10 7 9 *', function() {
+    var narodeniny5 = new cron.CronJob('00 00 10 7 9 *', function () {
         bot.channels.cache.get("472822895098200066").send("Všetko najlepšie k narodeninám <@167298450973523968> 🎉").then(reakcia => {
             reakcia.react("🎉");
         });
     }, null, true, 'Europe/Bratislava');
-    
+
     //kiko
-    var narodeniny6 = new cron.CronJob('00 00 10 6 7 *', function() {
+    var narodeniny6 = new cron.CronJob('00 00 10 6 7 *', function () {
         bot.channels.cache.get("472822895098200066").send("Všetko najlepšie k narodeninám <@650053654446997525> 🎉").then(reakcia => {
             reakcia.react("🎉");
         });
     }, null, true, 'Europe/Bratislava');
     //richard0o
-    var narodeniny7 = new cron.CronJob('00 00 10 9 3 *', function() {
+    var narodeniny7 = new cron.CronJob('00 00 10 9 3 *', function () {
         bot.channels.cache.get("472822895098200066").send("Všetko najlepšie k narodeninám <@420237481536126988> 🎉").then(reakcia => {
             reakcia.react("🎉");
         });
     }, null, true, 'Europe/Bratislava');
-    
+
     //milan
-    var narodeniny8 = new cron.CronJob('00 00 10 11 2 *', function() {
+    var narodeniny8 = new cron.CronJob('00 00 10 11 2 *', function () {
         bot.channels.cache.get("472822895098200066").send("Všetko najlepšie k narodeninám <@577447339036246017> 🎉").then(reakcia => {
             reakcia.react("🎉");
         });
     }, null, true, 'Europe/Bratislava');
-    
+
     //domo
-    var narodeniny9 = new cron.CronJob('00 00 10 8 11 *', function() {
+    var narodeniny9 = new cron.CronJob('00 00 10 8 11 *', function () {
         bot.channels.cache.get("472822895098200066").send("Všetko najlepšie k narodeninám <@479222589294641154> 🎉").then(reakcia => {
             reakcia.react("🎉");
         });
     }, null, true, 'Europe/Bratislava');
-    
+
     //dejvid
-    var narodeniny11 = new cron.CronJob('00 00 10 10 3 *', function() {
+    var narodeniny11 = new cron.CronJob('00 00 10 10 3 *', function () {
         bot.channels.cache.get("472822895098200066").send("Všetko najlepšie k narodeninám <@696293912175706142> 🎉").then(reakcia => {
             reakcia.react("🎉");
         });
     }, null, true, 'Europe/Bratislava');
     //skbot
-    
-    var narodeniny12 = new cron.CronJob('00 00 10 2 0 *', function() {
+
+    var narodeniny12 = new cron.CronJob('00 00 10 2 0 *', function () {
         bot.channels.cache.get("472822895098200066").send("Štvrté výročie SKbota na serveri 🎉");
     }, null, true, 'Europe/Bratislava');
 
     //na buy name/vip
-    
-    var nakup = new cron.CronJob('0 */4 * * *', async function() {//farebne meno
+
+    var nakup = new cron.CronJob('0 */4 * * *', async function () {//farebne meno
         const pozri = db.collection('nakupy');
         let casik = Date.now();
         const kukam = await pozri.where('platnostnakupu', '<', casik).get();
-        if(kukam.empty){
+        if (kukam.empty) {
             return;
         }
         kukam.forEach(tca => {
@@ -193,41 +195,41 @@ bot.on("ready", () => {
             db.collection('nakupy').doc(b).delete();
         });
     }, null, true, 'Europe/Bratislava');
-    
-    
-    var nakup2 = new cron.CronJob('0 */3 * * *', async function() {//vip
+
+
+    var nakup2 = new cron.CronJob('0 */3 * * *', async function () {//vip
         const asi = db.collection('nakupy2');
         let casicek = Date.now();
         const opa = await asi.where('platnostnakupu', '<', casicek).get();
-        if(opa.empty) return;
-        
-        opa.forEach(async(zeby) => {
+        if (opa.empty) return;
+
+        opa.forEach(async (zeby) => {
             let bb = zeby.data().ID;
             let meno = zeby.data().meno;
             let server = bot.guilds.cache.get(skplayersID);
             let hrac = await server.members.fetch(bb);
             hrac.roles.remove(vip);
-            
+
             db.collection('nakupy2').doc(bb).delete();
-            
+
             try {
-                if(hrac.roles.cache.get('472823586693054464')){
+                if (hrac.roles.cache.get('472823586693054464')) {
                     db.collection('web').doc(meno).update({
                         "rola": "Owner",
                     }).catch(console.log);
-                }else if(hrac.roles.cache.get(helper)){
+                } else if (hrac.roles.cache.get(helper)) {
                     db.collection('web').doc(meno).update({
                         "rola": "Helper",
                     }).catch(console.log);
-                }else if(hrac.roles.cache.get("802287093371502662")){
+                } else if (hrac.roles.cache.get("802287093371502662")) {
                     db.collection('web').doc(meno).update({
                         "rola": "Developer",
                     }).catch(console.log);
-                }else if(hrac.roles.cache.get(sbs)){
+                } else if (hrac.roles.cache.get(sbs)) {
                     db.collection('web').doc(meno).update({
                         "rola": "SBS",
                     }).catch(console.log);
-                }else{
+                } else {
                     db.collection('web').doc(meno).update({
                         "rola": "nic",
                     }).catch(console.log);
@@ -239,104 +241,104 @@ bot.on("ready", () => {
     }, null, true, 'Europe/Bratislava');
 
 
-    var nakup = new cron.CronJob('0 * * * *', async function() {
-        db.collection('game-updates-web').doc('ets').get().then(async(a) => {
+    var nakup = new cron.CronJob('0 * * * *', async function () {
+        db.collection('game-updates-web').doc('ets').get().then(async (a) => {
             //ets2
             let ets_update = a.data().nazov;
             let url = await fetch("https://api.rss2json.com/v1/api.json?rss_url=https://store.steampowered.com/feeds/news/app/227300/?cc=SK&l=czech&snr=1_2108_9__2107");
             let data = await url.json();
-    
+
             let nazov = data.items[0].title;
 
-            if(nazov == ets_update){
+            if (nazov == ets_update) {
                 return;
-            }else{
+            } else {
                 db.collection('game-updates-web').doc('ets').set({
                     "nazov": nazov,
                 });
                 let embed = new EmbedBuilder()
-                .setDescription(`Nový update si môžeš pozrieť tu: [${nazov}](https://skplayers.eu/game-updates/ets2/)`)
-                .setTitle(`Euro Truck Simulator 2 update`)
-                .setThumbnail('https://scssoft.com/press/euro_truck_simulator_2/images/assets/logo.png')
-                .setColor("f5dd07")
+                    .setDescription(`Nový update si môžeš pozrieť tu: [${nazov}](https://skplayers.eu/game-updates/ets2/)`)
+                    .setTitle(`Euro Truck Simulator 2 update`)
+                    .setThumbnail('https://scssoft.com/press/euro_truck_simulator_2/images/assets/logo.png')
+                    .setColor("f5dd07")
 
                 const updates = db.collection('global-updates');
                 const vyber = await updates.where('ets_channel', '!=', '0').get();
-                if(vyber.empty) return;
-        
-                vyber.forEach(async(result) => {
+                if (vyber.empty) return;
+
+                vyber.forEach(async (result) => {
                     let id_of_server = result.id;
                     let id_of_room = result.data().ets_channel;
-                    bot.guilds.cache.get(id_of_server).channels.cache.get(id_of_room).send({embeds: [embed]});
+                    bot.guilds.cache.get(id_of_server).channels.cache.get(id_of_room).send({ embeds: [embed] });
                 });
             }
         });
-        db.collection('game-updates-web').doc('slapshot').get().then(async(a) => {
+        db.collection('game-updates-web').doc('slapshot').get().then(async (a) => {
             let slapshot_update = a.data().nazov;
 
             let url = await fetch("https://api.rss2json.com/v1/api.json?rss_url=https://store.steampowered.com/feeds/news/app/1173370/?cc=SK&l=czech&snr=1_2108_9__2107");
             let data = await url.json();
-    
+
             let nazov = data.items[0].title;
 
-            if(nazov == slapshot_update){
+            if (nazov == slapshot_update) {
                 return;
-            }else{
+            } else {
                 db.collection('game-updates-web').doc('slapshot').set({
                     "nazov": nazov,
                 });
                 let embed = new EmbedBuilder()
-                .setDescription(`Nový update si môžeš pozrieť tu: [${nazov}](https://skplayers.eu/game-updates/slapshot-rebound/)`)
-                .setTitle(`Slapshot: Rebound update`)
-                .setThumbnail('https://slapshot.gg/img/slapshot-rebound-logo.png')
-                .setColor("f5dd07")
+                    .setDescription(`Nový update si môžeš pozrieť tu: [${nazov}](https://skplayers.eu/game-updates/slapshot-rebound/)`)
+                    .setTitle(`Slapshot: Rebound update`)
+                    .setThumbnail('https://slapshot.gg/img/slapshot-rebound-logo.png')
+                    .setColor("f5dd07")
 
                 const updates = db.collection('global-updates');
                 const vyber = await updates.where('slapshot_channel', '!=', '0').get();
-                if(vyber.empty) return;
-        
-                vyber.forEach(async(result) => {
+                if (vyber.empty) return;
+
+                vyber.forEach(async (result) => {
                     let id_of_server = result.id;
                     let id_of_room = result.data().slapshot_channel;
-                    bot.guilds.cache.get(id_of_server).channels.cache.get(id_of_room).send({embeds: [embed]});
+                    bot.guilds.cache.get(id_of_server).channels.cache.get(id_of_room).send({ embeds: [embed] });
                 });
             }
         });
-        db.collection('game-updates-web').doc('dead-by-daylight').get().then(async(a) => {
+        db.collection('game-updates-web').doc('dead-by-daylight').get().then(async (a) => {
             let dbd_update = a.data().nazov;
 
             let url = await fetch("https://api.rss2json.com/v1/api.json?rss_url=https://store.steampowered.com/feeds/news/app/381210/?cc=SK&l=czech&snr=1_2108_9__2107");
             let data = await url.json();
-    
+
             let nazov = data.items[0].title;
 
-            if(nazov == dbd_update){
+            if (nazov == dbd_update) {
                 return;
-            }else{
+            } else {
                 db.collection('game-updates-web').doc('dead-by-daylight').set({
                     "nazov": nazov,
                 });
                 let embed = new EmbedBuilder()
-                .setDescription(`Nový update si môžeš pozrieť tu: [${nazov}](https://skplayers.eu/game-updates/dead-by-daylight/)`)
-                .setTitle(`Dead by Daylight update`)
-                .setThumbnail('https://logos-world.net/wp-content/uploads/2021/02/Dead-by-Daylight-Logo.png')
-                .setColor("f5dd07")
+                    .setDescription(`Nový update si môžeš pozrieť tu: [${nazov}](https://skplayers.eu/game-updates/dead-by-daylight/)`)
+                    .setTitle(`Dead by Daylight update`)
+                    .setThumbnail('https://logos-world.net/wp-content/uploads/2021/02/Dead-by-Daylight-Logo.png')
+                    .setColor("f5dd07")
 
                 const updates = db.collection('global-updates');
                 const vyber = await updates.where('dbd_channel', '!=', '0').get();
-                if(vyber.empty) return;
-        
-                vyber.forEach(async(result) => {
+                if (vyber.empty) return;
+
+                vyber.forEach(async (result) => {
                     let id_of_server = result.id;
                     let id_of_room = result.data().dbd_channel;
-                    bot.guilds.cache.get(id_of_server).channels.cache.get(id_of_room).send({embeds: [embed]});
+                    bot.guilds.cache.get(id_of_server).channels.cache.get(id_of_room).send({ embeds: [embed] });
                 });
             }
         });
     }, null, true, 'Europe/Bratislava');
 
     //max gamble za den
-    var nakup = new cron.CronJob('0 0 * * *', async function() {
+    var nakup = new cron.CronJob('0 0 * * *', async function () {
         refresh_gamble();
         //refresh_trading();
     }, null, true, 'Europe/Bratislava');
@@ -345,49 +347,51 @@ bot.on("ready", () => {
     // var nakup = new cron.CronJob('0 */2 * * *', async function() {
     //     update_shop_items();
     // }, null, true, 'Europe/Bratislava');
-    
+
 });
 bot.on('messageCreate', message => {
-    if (message.guild && message.guild.id === skplayersID){//sk players server
-        
+    if (message.guild && message.guild.id === skplayersID) {//sk players server
+
         bot.commands.get('wasia-room').execute(message);
 
         bot.commands.get('balance').execute(bot, message, db);
 
         bot.commands.get('createaccount').execute(message, db);
-    
+
         bot.commands.get('daily').execute(message, db);
-    
+
         bot.commands.get('buy-vip').execute(bot, message, db);
-    
+
         bot.commands.get('addmoney').execute(bot, message, db);
-    
+
         bot.commands.get('removemoney').execute(bot, message, db);
-    
+
         bot.commands.get('buy-name').execute(bot, message, db);
-    
+
         bot.commands.get('shop').execute(message);
-    
+
         bot.commands.get('economy').execute(message);
-    
+
         bot.commands.get('buy-mute').execute(message, db);
 
         bot.commands.get('gamble').execute(message, db);
-    
+
         bot.commands.get('pay').execute(message, db);
-    
+
         bot.commands.get('jackpot').execute(message, db);
-        
+
         bot.commands.get('statistiky').execute(bot, message, db);
 
         bot.commands.get('top').execute(message, db);
-    
+
         bot.commands.get('buy-voicemute').execute(message, db);
-            
+
         bot.commands.get('web').execute(message, db, fielddb);
-    
+
         bot.commands.get('multiply').execute(message, db);
-     
+
+        bot.commands.get('blackjack').execute(message);
+
 
         /*
         if(message.content === "*generujkody"){
@@ -416,9 +420,9 @@ bot.on('messageCreate', message => {
             }
             
         }*/
-        if(message.content === PREFIX + "prepacte"){
+        if (message.content === PREFIX + "prepacte") {
             message.delete();
-            
+
             message.channel.createWebhook({
                 name: 'SK-bot-webhook',
                 avatar: bot.user.avatarURL(),
@@ -430,15 +434,15 @@ bot.on('messageCreate', message => {
                 });
                 setTimeout(() => {
                     webhook.delete();
-                  }, 500);
+                }, 500);
             });
         }
-        if(message.content === PREFIX + "move"){
+        if (message.content === PREFIX + "move") {
             let roomka = message.member.voice.channel;
-            if(!roomka) return message.reply("Musíš byť vo voice roomke");
-            message.reply({files: ['./emotes/move.gif'] });
+            if (!roomka) return message.reply("Musíš byť vo voice roomke");
+            message.reply({ files: ['./emotes/move.gif'] });
             let roomky = ["472823396674174986", "476403298505850891", "760055283451035719", "682975722146758747", "472841212664086529", "476110496357941252", "476110732635930624"];
-            for(let i=0; i< roomky.length; i++){
+            for (let i = 0; i < roomky.length; i++) {
                 message.member.voice.setChannel(roomky[i]);
             }
             message.member.voice.setChannel(roomka);
@@ -519,7 +523,7 @@ bot.on('messageCreate', message => {
     bot.commands.get('iq').execute(message);
 
     bot.commands.get('cicina').execute(message);
-    
+
     bot.commands.get('global-updates').execute(message, db, fielddb);
 
     bot.commands.get('kick').execute(message);
@@ -529,44 +533,43 @@ bot.on('messageCreate', message => {
     bot.commands.get('emote').execute(bot, message);
 
     bot.commands.get('music').execute(bot, message, server_music);
-
 });
 
 bot.on("messageCreate", async message => {
-    if (message.guild && message.guild.id === skplayersID){//skplayers
-        if (message.content.startsWith(PREFIX + "redeem")){
+    if (message.guild && message.guild.id === skplayersID) {//skplayers
+        if (message.content.startsWith(PREFIX + "redeem")) {
             message.delete();
             let args = message.content.split(" ");
             let kod = args[1];
-            if(!kod){
+            if (!kod) {
                 return message.channel.send(`<@${message.author.id}> Musíš zadať kód`);
             }
             const pozrisa = db.collection('redeem');
             const kukamsa = await pozrisa.where('kluc', '==', kod).get();
-            if(kukamsa.empty){
+            if (kukamsa.empty) {
                 return message.channel.send(`<@${message.author.id}> Zadal si zlý kód`);
             }
             kukamsa.forEach(zeby => {
                 let cislo = zeby.data().poradie;
                 db.collection('economy').doc(message.author.id).get().then((a) => {
-                    if(a.exists){
+                    if (a.exists) {
                         let money = a.data().money;
                         money = parseInt(money);
-                        money+= 100;
+                        money += 100;
                         db.collection("economy").doc(message.author.id).update({
                             "money": money,
                         });
                         message.channel.send(`<@${message.author.id}> Úspešne ti bolo pripísaných 100 coinov`);
-                    }else{
+                    } else {
                         message.channel.send(`<@${message.author.id}> Nemáš vytvorený účet`);
                     }
                 }).then(() => {
                     db.collection('redeem').doc(cislo).delete();
                 });
-                
+
             });
         }
-       
+
     }
     if (message.content === PREFIX + "ping") {
         message.delete();
@@ -589,12 +592,11 @@ bot.on('interactionCreate', async (interaction) => {
     if (!interaction.isChatInputCommand()) return;
     //const guild_command = bot.guild_slash_commands.get(interaction.commandName);
 
-    if(interaction.commandGuildId == null){//global command
+    if (interaction.commandGuildId == null) {//global command
         bot.global_slash_commands.get(interaction.commandName).execute(interaction, db);
-    }else{//guild command
+    } else {//guild command
         bot.guild_slash_commands.get(interaction.commandName).execute(interaction, db);
     }
-
     //if(!guild_command || !global_command) return;
 
     /*try{
@@ -616,22 +618,22 @@ bot.on('interactionCreate', async (interaction) => {
 //         bot.channels.cache.get("686650199904616456").send({embeds:[embed]});
 //     }
 // });
-bot.on('emojiCreate' , (emoji) => {
+bot.on('emojiCreate', (emoji) => {
     emoji.guild.emojis.fetch();
 });
-bot.on('emojiUpdate' , (oldEmoji, newEmoji) => {
+bot.on('emojiUpdate', (oldEmoji, newEmoji) => {
     newEmoji.guild.emojis.fetch();
 });
-bot.on('emojiDelete' , (emoji) => {
+bot.on('emojiDelete', (emoji) => {
     emoji.guild.emojis.fetch();
 });
 bot.on("voiceStateUpdate", (oldState, newState) => {
-    if(oldState.channelId === newState.chanelId) return;
-      
-    if(!oldState.channelId && newState.channelId) return;
-  
-    if(oldState.channelId && !newState.channelId){
-        if(newState.member.id == bot.user.id){
+    if (oldState.channelId === newState.chanelId) return;
+
+    if (!oldState.channelId && newState.channelId) return;
+
+    if (oldState.channelId && !newState.channelId) {
+        if (newState.member.id == bot.user.id) {
             delete server_music[oldState.guild.id];
         }
     }
@@ -640,12 +642,12 @@ bot.on("voiceStateUpdate", (oldState, newState) => {
 
 /* FUNCTIONS */
 
-async function refresh_gamble(){
+async function refresh_gamble() {
     const gamble_pocet = db.collection('statistiky');
     const vyber = await gamble_pocet.where('pregamblene', '>', 0).get();
-    if(vyber.empty) return;
+    if (vyber.empty) return;
 
-    vyber.forEach(async(result) => {
+    vyber.forEach(async (result) => {
         db.collection('statistiky').doc(result.id).update({
             "gamble_count": 1000,
         });
