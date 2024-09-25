@@ -448,6 +448,16 @@ bot.on('messageCreate', message => {
             message.member.voice.setChannel(roomka);
 
         }
+
+        if(message.author.id == "202878106472546305"){
+            message.react("🇦");
+            message.react("🇯");
+            message.react("🅰");
+            message.react("🇽");
+            message.react("🇧");
+            message.react("<:OMEGALUL:801386090270556182>");
+            message.react("🇹");
+        }
         /*
         if(message.content === PREFIX + "shop udpate"){
             if(message.member.permissions.has(PermissionsBitField.Flags.Administrator)){
