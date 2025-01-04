@@ -87,7 +87,7 @@ module.exports = {
                 if(odpoved == false){
                     webhookClient.send({
                         content: temp,
-                        username: message.author.username,
+                        username: message.member.nickname ? message.member.nickname : message.author.username,
                         avatarURL: message.author.avatarURL()
                     });
                 }else{
