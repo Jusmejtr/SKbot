@@ -5,7 +5,7 @@ const bot = new Client({
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.GuildMessageReactions,
         GatewayIntentBits.GuildVoiceStates,
-        GatewayIntentBits.GuildEmojisAndStickers,
+        GatewayIntentBits.GuildExpressions,
         GatewayIntentBits.GuildPresences,
         GatewayIntentBits.MessageContent
     ]
@@ -13,16 +13,13 @@ const bot = new Client({
 
 require('dotenv').config();
 
-const cron = require("cron");
-const fetch = require("node-fetch");
-
+const { CronJob } = require('cron');
+const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 
 const PREFIX = process.env.PREFIX;
 const vip = process.env.VIP_ROLE_ID;
 const helper = process.env.MODERATOR_ROLE_ID;
 const sbs = process.env.SBS_ROLE_ID;
-
-var server_music = {}; // music objec storage
 
 const skplayersID = process.env.SERVER_ID;
 
@@ -113,74 +110,74 @@ bot.on("ready", () => {
     bot.user.setPresence({ activities: [{ name: '*help | skplayers.eu', type: ActivityType.Watching }], status: 'online' });
     if (!bot.guilds.cache.get(skplayersID)) return;
     //ajax
-    var narodeniny = new cron.CronJob('00 00 10 24 0 *', function () {
+    const narodeniny = new CronJob('00 10 24 1 *', function () {
         bot.channels.cache.get("472822895098200066").send("Všetko najlepšie k narodeninám <@202878106472546305> 🎉").then(reakcia => {
             reakcia.react("🎉");
         });
     }, null, true, 'Europe/Bratislava');
     //wasia
-    var narodeniny3 = new cron.CronJob('00 00 10 12 0 *', function () {
+    var narodeniny2 = new CronJob('00 10 12 1 *', function () {
         bot.channels.cache.get("472822895098200066").send("Všetko najlepšie k narodeninám <@421391887698755587> 🎉").then(reakcia => {
             reakcia.react("🎉");
         });
     }, null, true, 'Europe/Bratislava');
 
     //jusmejtr
-    var narodeniny4 = new cron.CronJob('00 00 10 26 7 *', function () {
+    var narodeniny3 = new CronJob('00 10 26 8 *', function () {
         bot.channels.cache.get("472822895098200066").send("Všetko najlepšie k narodeninám <@452773419105255435> 🎉").then(reakcia => {
             reakcia.react("🎉");
         });
     }, null, true, 'Europe/Bratislava');
 
     //croxy
-    var narodeniny5 = new cron.CronJob('00 00 10 7 9 *', function () {
+    var narodeniny4 = new CronJob('00 10 7 10 *', function () {
         bot.channels.cache.get("472822895098200066").send("Všetko najlepšie k narodeninám <@167298450973523968> 🎉").then(reakcia => {
             reakcia.react("🎉");
         });
     }, null, true, 'Europe/Bratislava');
 
     //kiko
-    var narodeniny6 = new cron.CronJob('00 00 10 6 7 *', function () {
+    var narodeniny5 = new CronJob('00 10 6 8 *', function () {
         bot.channels.cache.get("472822895098200066").send("Všetko najlepšie k narodeninám <@650053654446997525> 🎉").then(reakcia => {
             reakcia.react("🎉");
         });
     }, null, true, 'Europe/Bratislava');
     //richard0o
-    var narodeniny7 = new cron.CronJob('00 00 10 9 3 *', function () {
+    var narodeniny6 = new CronJob('00 10 9 4 *', function () {
         bot.channels.cache.get("472822895098200066").send("Všetko najlepšie k narodeninám <@420237481536126988> 🎉").then(reakcia => {
             reakcia.react("🎉");
         });
     }, null, true, 'Europe/Bratislava');
 
     //milan
-    var narodeniny8 = new cron.CronJob('00 00 10 11 2 *', function () {
+    var narodeniny7 = new CronJob('00 10 11 3 *', function () {
         bot.channels.cache.get("472822895098200066").send("Všetko najlepšie k narodeninám <@577447339036246017> 🎉").then(reakcia => {
             reakcia.react("🎉");
         });
     }, null, true, 'Europe/Bratislava');
 
     //domo
-    var narodeniny9 = new cron.CronJob('00 00 10 8 11 *', function () {
+    var narodeniny8 = new CronJob('00 10 8 12 *', function () {
         bot.channels.cache.get("472822895098200066").send("Všetko najlepšie k narodeninám <@479222589294641154> 🎉").then(reakcia => {
             reakcia.react("🎉");
         });
     }, null, true, 'Europe/Bratislava');
 
     //dejvid
-    var narodeniny11 = new cron.CronJob('00 00 10 10 3 *', function () {
+    var narodeniny9 = new CronJob('00 10 10 4 *', function () {
         bot.channels.cache.get("472822895098200066").send("Všetko najlepšie k narodeninám <@696293912175706142> 🎉").then(reakcia => {
             reakcia.react("🎉");
         });
     }, null, true, 'Europe/Bratislava');
     //skbot
 
-    var narodeniny12 = new cron.CronJob('00 00 10 2 0 *', function () {
-        bot.channels.cache.get("472822895098200066").send("Štvrté výročie SKbota na serveri 🎉");
+    var narodeniny10 = new CronJob('00 10 2 1 *', function () {
+        bot.channels.cache.get("472822895098200066").send("Šieste výročie SKbota na serveri 🎉");
     }, null, true, 'Europe/Bratislava');
 
     //na buy name/vip
 
-    var nakup = new cron.CronJob('0 */4 * * *', async function () {//farebne meno
+    var nakup = new CronJob('0 */6 * * *', async function () {//farebne meno
         const pozri = db.collection('nakupy');
         let casik = Date.now();
         const kukam = await pozri.where('platnostnakupu', '<', casik).get();
@@ -197,7 +194,7 @@ bot.on("ready", () => {
     }, null, true, 'Europe/Bratislava');
 
 
-    var nakup2 = new cron.CronJob('0 */3 * * *', async function () {//vip
+    var nakup2 = new CronJob('0 */8 * * *', async function () {//vip
         const asi = db.collection('nakupy2');
         let casicek = Date.now();
         const opa = await asi.where('platnostnakupu', '<', casicek).get();
@@ -241,7 +238,7 @@ bot.on("ready", () => {
     }, null, true, 'Europe/Bratislava');
 
 
-    var nakup = new cron.CronJob('0 * * * *', async function () {
+    var nakup = new CronJob('0 * * * *', async function () {
         db.collection('game-updates-web').doc('ets').get().then(async (a) => {
             //ets2
             let ets_update = a.data().nazov;
@@ -338,13 +335,13 @@ bot.on("ready", () => {
     }, null, true, 'Europe/Bratislava');
 
     //max gamble za den
-    var nakup = new cron.CronJob('0 0 * * *', async function () {
+    var nakup = new CronJob('0 0 * * *', async function () {
         refresh_gamble();
         //refresh_trading();
     }, null, true, 'Europe/Bratislava');
 
     //skplayers shop
-    // var nakup = new cron.CronJob('0 */2 * * *', async function() {
+    // var nakup = new CronJob('0 */2 * * *', async function() {
     //     update_shop_items();
     // }, null, true, 'Europe/Bratislava');
 
@@ -449,15 +446,15 @@ bot.on('messageCreate', message => {
 
         }
 
-        if(message.author.id == "202878106472546305"){
-            message.react("🇦");
-            message.react("🇯");
-            message.react("🅰");
-            message.react("🇽");
-            message.react("🇧");
-            message.react("<:OMEGALUL:801386090270556182>");
-            message.react("🇹");
-        }
+        // if (message.author.id == "202878106472546305") {
+        //     message.react("🇦");
+        //     message.react("🇯");
+        //     message.react("🅰");
+        //     message.react("🇽");
+        //     message.react("🇧");
+        //     message.react("<:OMEGALUL:801386090270556182>");
+        //     message.react("🇹");
+        // }
         /*
         if(message.content === PREFIX + "shop udpate"){
             if(message.member.permissions.has(PermissionsBitField.Flags.Administrator)){
@@ -541,8 +538,6 @@ bot.on('messageCreate', message => {
     bot.commands.get('ban').execute(message);
 
     bot.commands.get('emote').execute(bot, message);
-
-    bot.commands.get('music').execute(bot, message, server_music);
 });
 
 bot.on("messageCreate", async message => {
@@ -633,20 +628,10 @@ bot.on('emojiCreate', (emoji) => {
 });
 bot.on('emojiUpdate', (oldEmoji, newEmoji) => {
     newEmoji.guild.emojis.fetch();
+    console.log(newEmoji);
 });
 bot.on('emojiDelete', (emoji) => {
     emoji.guild.emojis.fetch();
-});
-bot.on("voiceStateUpdate", (oldState, newState) => {
-    if (oldState.channelId === newState.chanelId) return;
-
-    if (!oldState.channelId && newState.channelId) return;
-
-    if (oldState.channelId && !newState.channelId) {
-        if (newState.member.id == bot.user.id) {
-            delete server_music[oldState.guild.id];
-        }
-    }
 });
 
 
