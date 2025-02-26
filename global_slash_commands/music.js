@@ -87,6 +87,7 @@ async function playMusic(interaction, guildId, voiceChannel, query) {
 
     // If it's a direct YouTube link, play it immediately
     if (query.startsWith('https://www.youtube.com') || query.startsWith('https://youtube.com') || query.startsWith('https://youtu.be/')) {
+        interaction.followUp({ content: `Added to queue ${query}` });
         return await addSongToQueue(interaction, guildId, voiceChannel, { url: query, title: query });
     }
 
