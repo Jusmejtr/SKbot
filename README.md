@@ -1,9 +1,11 @@
 
 # SK bot
 
-My project that i created during high school in my free time for my discord server.
+My project, which I created during high school in my free time for my Discord server.
 
-Discord bot was made with Node.js
+The Discord bot was made with JavaScript on Node.js.
+
+Bot currently running on discord.js v14. Newly supports some slash command but not many.
 
 Functions:
 
