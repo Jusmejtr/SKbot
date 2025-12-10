@@ -357,7 +357,7 @@ async function showQueue(interaction, guildId) {
     if (serverQueue.currentlyPlaying) {
         embed.addFields({ 
             name: '🔊 Now Playing', 
-            value: `${serverQueue.currentlyPlaying.title} - ${serverQueue.currentlyPlaying.author}` 
+            value: `${serverQueue.currentlyPlaying.title || 'Unknown'} - ${serverQueue.currentlyPlaying.author || 'Unknown'}` 
         });
     }
 
@@ -410,10 +410,10 @@ async function nowPlaying(interaction, guildId) {
     const embed = new EmbedBuilder()
         .setTitle('🔊 Now Playing')
         .setColor('#FF0000')
-        .setDescription(`**${currentlyPlaying.title}**`)
+        .setDescription(`**${currentlyPlaying.title || 'Unknown'}**`)
         .addFields(
-            { name: 'Channel', value: currentlyPlaying.author, inline: true },
-            { name: 'Duration', value: currentlyPlaying.duration, inline: true }
+            { name: 'Channel', value: currentlyPlaying.author || 'Unknown', inline: true },
+            { name: 'Duration', value: currentlyPlaying.duration || 'Unknown', inline: true }
         );
 
     if (currentlyPlaying.thumbnail) {
