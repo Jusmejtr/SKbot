@@ -416,8 +416,12 @@ async function nowPlaying(interaction, guildId) {
             { name: 'Duration', value: currentlyPlaying.duration || 'Unknown', inline: true }
         );
 
-    if (currentlyPlaying.thumbnail) {
+    // Only set thumbnail if it's a valid URL
+    if (currentlyPlaying.thumbnail && currentlyPlaying.thumbnail.startsWith('http')) {
         embed.setThumbnail(currentlyPlaying.thumbnail);
+    } else if (currentlyPlaying.thumbnail && currentlyPlaying.thumbnail.startsWith('//')) {
+        // Fix protocol-relative URLs
+        embed.setThumbnail('https:' + currentlyPlaying.thumbnail);
     }
 
     interaction.reply({ embeds: [embed] });
