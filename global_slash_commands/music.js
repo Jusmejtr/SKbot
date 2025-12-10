@@ -110,6 +110,8 @@ async function getVideoInfo(url) {
             dumpSingleJson: true,
             noCheckCertificates: true,
             noWarnings: true,
+            skipDownload: true,
+            noPlaylist: true,
         });
         return result;
     } catch (error) {
@@ -171,7 +173,6 @@ async function playMusic(interaction, guildId, voiceChannel) {
         
         if (isURL) {
             const videoInfo = await getVideoInfo(query);
-            
             if (!videoInfo) {
                 return interaction.followUp({ content: 'Could not get video info.', flags: MessageFlags.Ephemeral });
             }
