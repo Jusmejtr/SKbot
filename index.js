@@ -104,7 +104,7 @@ const rest = new REST().setToken(process.env.DISCORD_TOKEN);
 
 
 
-bot.on("ready", () => {
+bot.on("clientReady", () => {
     console.log(`Bot is online! (${bot.guilds.cache.size} servers)`);
 
     bot.user.setPresence({ activities: [{ name: '*help | skplayers.eu', type: ActivityType.Watching }], status: 'online' });
