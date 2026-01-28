@@ -42,12 +42,7 @@ module.exports = {
         .addSubcommand(subcommand =>
             subcommand
                 .setName('game-codes')
-                .setDescription('Shows game codes for setup command'))
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('help')
-                .setDescription('Shows help for global updates commands'))
-        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+                .setDescription('Shows game codes for setup command')),
 
     async execute(interaction, db) {
         const subcommand = interaction.options.getSubcommand();
@@ -65,9 +60,6 @@ module.exports = {
                 break;
             case 'game-codes':
                 await showGameCodes(interaction);
-                break;
-            case 'help':
-                await showHelp(interaction);
                 break;
         }
     }
@@ -158,20 +150,6 @@ async function showGameCodes(interaction) {
                 name: g.name,
                 value: `code: ${g.code} (usage: /game-updates setup game:${g.code})`
             }))
-        );
-
-    await interaction.reply({ embeds: [embed] });
-}
-
-async function showHelp(interaction) {
-    const embed = new EmbedBuilder()
-        .setTitle('Game Updates')
-        .setColor('#ff0000')
-        .addFields(
-            { name: '/game-updates list', value: 'Shows actual game update list' },
-            { name: '/game-updates setup', value: 'Set channel to receive game updates' },
-            { name: '/game-updates remove', value: 'Disable receiving game updates' },
-            { name: '/game-updates game-codes', value: 'Shows game codes for setup command' }
         );
 
     await interaction.reply({ embeds: [embed] });
