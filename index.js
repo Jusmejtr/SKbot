@@ -531,8 +531,6 @@ bot.on('messageCreate', message => {
 
     bot.commands.get('cicina').execute(message);
 
-    bot.commands.get('global-updates').execute(message, db, fielddb);
-
     bot.commands.get('kick').execute(message);
 
     bot.commands.get('ban').execute(message);
