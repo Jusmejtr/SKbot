@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } = require('discord.js');
-const { joinVoiceChannel, createAudioResource, createAudioPlayer, AudioPlayerStatus, getVoiceConnection, StreamType } = require('@discordjs/voice');
+const { joinVoiceChannel, createAudioResource, createAudioPlayer, AudioPlayerStatus, getVoiceConnection, StreamType, VoiceConnectionStatus, entersState } = require('@discordjs/voice');
 const ytdlp = require('youtube-dl-exec');
 const { spawn } = require('child_process');
 const path = require('path');
@@ -7,7 +7,7 @@ const path = require('path');
 // Get yt-dlp binary path - works on both Windows and Linux
 const isWindows = process.platform === 'win32';
 const ytdlpPath = path.join(
-    __dirname, '..', 'node_modules', 'youtube-dl-exec', 'bin', 
+    __dirname, '..', 'node_modules', 'youtube-dl-exec', 'bin',
     isWindows ? 'yt-dlp.exe' : 'yt-dlp'
 );
 
@@ -95,7 +95,7 @@ async function searchYouTube(query, limit = 5) {
             noWarnings: true,
             flatPlaylist: true,
         });
-        
+
         return result.entries || [];
     } catch (error) {
         console.error('Search error:', error);
@@ -125,15 +125,31 @@ function createYtdlpStream(url) {
     const process = spawn(ytdlpPath, [
         url,
         '-o', '-',
-        '-f', 'bestaudio[ext=webm][acodec=opus]/bestaudio/best',
+        '-f', 'bestaudio/best',
         '--no-playlist',
-        '-q'
+        '--extractor-args', 'youtube:player_client=android,ios',
+        '--no-check-certificate',
+        '--geo-bypass'
     ], {
-        stdio: ['ignore', 'pipe', 'ignore']
+        stdio: ['ignore', 'pipe', 'pipe']
     });
 
     process.on('error', (err) => {
         console.error('yt-dlp process error:', err);
+    });
+
+    process.stderr.on('data', (data) => {
+        const message = data.toString();
+        // Only log actual errors, not warnings or download progress
+        if (message.includes('ERROR:') && !message.includes('[download]')) {
+            console.error('yt-dlp error:', message);
+        }
+    });
+
+    process.on('close', (code) => {
+        if (code !== 0 && code !== null) {
+            console.error(`yt-dlp exited with code ${code}`);
+        }
     });
 
     return process.stdout;
@@ -148,9 +164,9 @@ async function playMusic(interaction, guildId, voiceChannel) {
     let serverQueue = musicQueue.get(guildId);
     if (!serverQueue) {
         const player = createAudioPlayer();
-        serverQueue = { 
-            queue: [], 
-            currentlyPlaying: null, 
+        serverQueue = {
+            queue: [],
+            currentlyPlaying: null,
             player,
             voiceChannel
         };
@@ -170,7 +186,7 @@ async function playMusic(interaction, guildId, voiceChannel) {
     try {
         // Check if it's a YouTube URL
         const isURL = query.includes('youtube.com') || query.includes('youtu.be');
-        
+
         if (isURL) {
             const videoInfo = await getVideoInfo(query);
             if (!videoInfo) {
@@ -214,9 +230,9 @@ async function playMusic(interaction, guildId, voiceChannel) {
         results.forEach((video, index) => {
             const duration = formatDuration(video.duration);
             const author = video.uploader || video.channel || 'Unknown';
-            embed.addFields({ 
-                name: `**${index + 1}.** ${video.title}`, 
-                value: `by ${author} (${duration})` 
+            embed.addFields({
+                name: `**${index + 1}.** ${video.title}`,
+                value: `by ${author} (${duration})`
             });
         });
 
@@ -258,16 +274,16 @@ async function playMusic(interaction, guildId, voiceChannel) {
                 await playNextSong(guildId);
             }
 
-            await i.update({ 
-                content: `🎵 Added to queue: **${song.title}** by ${song.author} (${song.duration})`, 
-                embeds: [], 
-                components: [] 
+            await i.update({
+                content: `🎵 Added to queue: **${song.title}** by ${song.author} (${song.duration})`,
+                embeds: [],
+                components: []
             });
         });
 
         collector.on('end', (collected) => {
             if (collected.size === 0) {
-                selectionMessage.edit({ content: 'Selection timed out.', embeds: [], components: [] }).catch(() => {});
+                selectionMessage.edit({ content: 'Selection timed out.', embeds: [], components: [] }).catch(() => { });
             }
         });
 
@@ -280,7 +296,7 @@ async function playMusic(interaction, guildId, voiceChannel) {
 // Function to play the next song
 async function playNextSong(guildId) {
     const serverQueue = musicQueue.get(guildId);
-    
+
     if (!serverQueue || serverQueue.queue.length === 0) {
         if (serverQueue) {
             serverQueue.currentlyPlaying = null;
@@ -303,11 +319,39 @@ async function playNextSong(guildId) {
                 guildId,
                 adapterCreator: serverQueue.voiceChannel.guild.voiceAdapterCreator
             });
+
+            // Wait for connection to be ready
+            connection.on(VoiceConnectionStatus.Disconnected, async () => {
+                try {
+                    await Promise.race([
+                        entersState(connection, VoiceConnectionStatus.Signalling, 5_000),
+                        entersState(connection, VoiceConnectionStatus.Connecting, 5_000),
+                    ]);
+                } catch (error) {
+                    console.error('Connection disconnected:', error);
+                    connection.destroy();
+                    musicQueue.delete(guildId);
+                }
+            });
         }
 
         const stream = createYtdlpStream(song.url);
+
+        // Add error handler for the stream
+        stream.on('error', (error) => {
+            console.error('Stream error:', error);
+            playNextSong(guildId);
+        });
+
         const resource = createAudioResource(stream, {
-            inputType: StreamType.WebmOpus
+            inputType: StreamType.Arbitrary,
+            inlineVolume: true
+        });
+
+        // Add error handler for the resource
+        resource.playStream.on('error', (error) => {
+            console.error('Resource stream error:', error);
+            playNextSong(guildId);
         });
 
         serverQueue.player.play(resource);
@@ -322,7 +366,7 @@ async function playNextSong(guildId) {
 // Skip current song
 async function skipMusic(interaction, guildId) {
     const serverQueue = musicQueue.get(guildId);
-    
+
     if (!serverQueue || !serverQueue.currentlyPlaying) {
         return interaction.reply({ content: 'No song is currently playing.', flags: MessageFlags.Ephemeral });
     }
@@ -334,18 +378,18 @@ async function skipMusic(interaction, guildId) {
 // Show the queue
 async function showQueue(interaction, guildId) {
     const serverQueue = musicQueue.get(guildId);
-    
+
     if (!serverQueue || serverQueue.queue.length === 0) {
         const currentSong = serverQueue?.currentlyPlaying;
         if (currentSong) {
-            return interaction.reply({ 
-                content: `**Now playing:** ${currentSong.title}\n\nThe queue is empty.` 
+            return interaction.reply({
+                content: `**Now playing:** ${currentSong.title}\n\nThe queue is empty.`
             });
         }
         return interaction.reply({ content: 'The queue is empty.', flags: MessageFlags.Ephemeral });
     }
 
-    const queueList = serverQueue.queue.slice(0, 10).map((song, index) => 
+    const queueList = serverQueue.queue.slice(0, 10).map((song, index) =>
         `**${index + 1}.** ${song.title} - ${song.author} (${song.duration})`
     ).join('\n');
 
@@ -356,9 +400,9 @@ async function showQueue(interaction, guildId) {
         .setFooter({ text: `Total songs in queue: ${serverQueue.queue.length}` });
 
     if (serverQueue.currentlyPlaying) {
-        embed.addFields({ 
-            name: '🔊 Now Playing', 
-            value: `${serverQueue.currentlyPlaying.title || 'Unknown'} - ${serverQueue.currentlyPlaying.author || 'Unknown'}` 
+        embed.addFields({
+            name: '🔊 Now Playing',
+            value: `${serverQueue.currentlyPlaying.title || 'Unknown'} - ${serverQueue.currentlyPlaying.author || 'Unknown'}`
         });
     }
 
@@ -368,7 +412,7 @@ async function showQueue(interaction, guildId) {
 // Shuffle the queue
 async function shuffleQueue(interaction, guildId) {
     const serverQueue = musicQueue.get(guildId);
-    
+
     if (!serverQueue || serverQueue.queue.length < 2) {
         return interaction.reply({ content: 'Not enough songs to shuffle.', flags: MessageFlags.Ephemeral });
     }
@@ -384,7 +428,7 @@ async function shuffleQueue(interaction, guildId) {
 // Leave voice channel
 async function leaveChannel(interaction, guildId) {
     const connection = getVoiceConnection(guildId);
-    
+
     if (!connection) {
         return interaction.reply({ content: 'Not connected to a voice channel.', flags: MessageFlags.Ephemeral });
     }
@@ -393,7 +437,7 @@ async function leaveChannel(interaction, guildId) {
     if (serverQueue) {
         serverQueue.player.stop();
     }
-    
+
     connection.destroy();
     musicQueue.delete(guildId);
     interaction.reply({ content: '👋 Disconnected from voice channel.' });
