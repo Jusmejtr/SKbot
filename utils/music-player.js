@@ -98,6 +98,18 @@ async function playNextSong(guildId) {
             }
         }
 
+        // No more songs: stop player, destroy connection and remove queue
+        try {
+            const connection = getVoiceConnection(guildId);
+            if (connection) {
+                serverQueue?.player?.stop(true);
+                connection.destroy();
+            }
+        } catch (err) {
+            console.error('Error while cleaning up connection:', err);
+        }
+
+        musicQueue.delete(guildId);
         return;
     }
 
