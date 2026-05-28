@@ -306,6 +306,11 @@ async function skipMusic(interaction) {
         return interaction.reply({ content: 'No song is currently playing.', flags: MessageFlags.Ephemeral });
     }
 
+    // If there's no next song in the queue, don't allow skipping
+    if (!serverQueue.queue || serverQueue.queue.length === 0) {
+        return interaction.reply({ content: 'There is no next song in the queue to skip to.', flags: MessageFlags.Ephemeral });
+    }
+
     if (serverQueue.audioProcess) {
         serverQueue.audioProcess.kill();
         serverQueue.audioProcess = null;
