@@ -1,10 +1,9 @@
-const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } = require('discord.js');
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } = require('discord.js');
 const { joinVoiceChannel, createAudioResource, createAudioPlayer, AudioPlayerStatus, getVoiceConnection, StreamType, VoiceConnectionStatus, entersState } = require('@discordjs/voice');
 const ytdlp = require('youtube-dl-exec');
 const { spawn } = require('child_process');
 const path = require('path');
 
-// Get yt-dlp binary path - works on both Windows and Linux
 const isWindows = process.platform === 'win32';
 const ytdlpPath = path.join(
     __dirname, '..', 'node_modules', 'youtube-dl-exec', 'bin',
@@ -13,72 +12,6 @@ const ytdlpPath = path.join(
 
 const musicQueue = new Map();
 
-module.exports = {
-    data: new SlashCommandBuilder()
-        .setName('music')
-        .setDescription('Music player commands')
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('play')
-                .setDescription('Play a song')
-                .addStringOption(option =>
-                    option.setName('query')
-                        .setDescription('YouTube URL or search term')
-                        .setRequired(true)))
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('skip')
-                .setDescription('Skip the current song'))
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('queue')
-                .setDescription('Show the current queue'))
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('shuffle')
-                .setDescription('Shuffle the queue'))
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('leave')
-                .setDescription('Disconnect from the voice channel'))
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('nowplaying')
-                .setDescription('Show the currently playing song')),
-
-    async execute(interaction) {
-        const subcommand = interaction.options.getSubcommand();
-        const guildId = interaction.guild.id;
-        const voiceChannel = interaction.member.voice.channel;
-
-        if (!voiceChannel) {
-            return interaction.reply({ content: 'You must be in a voice channel!', flags: MessageFlags.Ephemeral });
-        }
-
-        switch (subcommand) {
-            case 'play':
-                await playMusic(interaction, guildId, voiceChannel);
-                break;
-            case 'skip':
-                await skipMusic(interaction, guildId);
-                break;
-            case 'queue':
-                await showQueue(interaction, guildId);
-                break;
-            case 'shuffle':
-                await shuffleQueue(interaction, guildId);
-                break;
-            case 'leave':
-                await leaveChannel(interaction, guildId);
-                break;
-            case 'nowplaying':
-                await nowPlaying(interaction, guildId);
-                break;
-        }
-    }
-};
-
-// Format duration from seconds to mm:ss
 function formatDuration(seconds) {
     if (!seconds) return 'Unknown';
     const minutes = Math.floor(seconds / 60);
@@ -86,7 +19,6 @@ function formatDuration(seconds) {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
 }
 
-// Search YouTube using yt-dlp
 async function searchYouTube(query, limit = 5) {
     try {
         const result = await ytdlp(`ytsearch${limit}:${query}`, {
@@ -103,7 +35,6 @@ async function searchYouTube(query, limit = 5) {
     }
 }
 
-// Get video info using yt-dlp
 async function getVideoInfo(url) {
     try {
         const result = await ytdlp(url, {
@@ -120,7 +51,6 @@ async function getVideoInfo(url) {
     }
 }
 
-// Create audio stream using yt-dlp
 function createYtdlpStream(url) {
     const process = spawn(ytdlpPath, [
         url,
@@ -140,26 +70,105 @@ function createYtdlpStream(url) {
 
     process.stderr.on('data', (data) => {
         const message = data.toString();
-        // Only log actual errors, not warnings or download progress
+        if (message.includes('Broken pipe') || message.includes('Errno 32')) return;
+
         if (message.includes('ERROR:') && !message.includes('[download]')) {
             console.error('yt-dlp error:', message);
         }
     });
 
     process.on('close', (code) => {
-        if (code !== 0 && code !== null) {
+        if (code !== 0 && code !== null && code !== 1) {
             console.error(`yt-dlp exited with code ${code}`);
         }
     });
 
-    return process.stdout;
+    return process;
 }
 
-// Function to play music
-async function playMusic(interaction, guildId, voiceChannel) {
+async function playNextSong(guildId) {
+    const serverQueue = musicQueue.get(guildId);
+
+    if (!serverQueue || serverQueue.queue.length === 0) {
+        if (serverQueue) {
+            serverQueue.currentlyPlaying = null;
+            if (serverQueue.audioProcess) {
+                serverQueue.audioProcess.kill();
+                serverQueue.audioProcess = null;
+            }
+        }
+
+        return;
+    }
+
+    const song = serverQueue.queue.shift();
+    serverQueue.currentlyPlaying = song;
+
+    try {
+        let connection = getVoiceConnection(guildId);
+        if (!connection) {
+            connection = joinVoiceChannel({
+                channelId: serverQueue.voiceChannel.id,
+                guildId,
+                adapterCreator: serverQueue.voiceChannel.guild.voiceAdapterCreator
+            });
+
+            connection.on(VoiceConnectionStatus.Disconnected, async () => {
+                try {
+                    await Promise.race([
+                        entersState(connection, VoiceConnectionStatus.Signalling, 5_000),
+                        entersState(connection, VoiceConnectionStatus.Connecting, 5_000),
+                    ]);
+                } catch (error) {
+                    console.error('Connection disconnected:', error);
+                    connection.destroy();
+                    musicQueue.delete(guildId);
+                }
+            });
+        }
+
+        if (serverQueue.audioProcess) {
+            serverQueue.audioProcess.kill();
+        }
+
+        const audioProcess = createYtdlpStream(song.url);
+        serverQueue.audioProcess = audioProcess;
+        const stream = audioProcess.stdout;
+
+        stream.on('error', (error) => {
+            if (error.code === 'ERR_STREAM_PREMATURE_CLOSE') return;
+            console.error('Stream error:', error);
+        });
+
+        const resource = createAudioResource(stream, {
+            inputType: StreamType.Arbitrary,
+            inlineVolume: true
+        });
+
+        resource.playStream.on('error', (error) => {
+            if (error.code === 'ERR_STREAM_PREMATURE_CLOSE') return;
+            console.error('Resource stream error:', error);
+        });
+
+        serverQueue.player.play(resource);
+        connection.subscribe(serverQueue.player);
+
+    } catch (error) {
+        console.error('Error playing song:', error);
+        await playNextSong(guildId);
+    }
+}
+
+async function playMusic(interaction) {
     await interaction.deferReply();
 
     const query = interaction.options.getString('query');
+    const guildId = interaction.guild.id;
+    const voiceChannel = interaction.member.voice.channel;
+
+    if (!voiceChannel) {
+        return interaction.followUp({ content: 'You must be in a voice channel!', flags: MessageFlags.Ephemeral });
+    }
 
     let serverQueue = musicQueue.get(guildId);
     if (!serverQueue) {
@@ -167,24 +176,24 @@ async function playMusic(interaction, guildId, voiceChannel) {
         serverQueue = {
             queue: [],
             currentlyPlaying: null,
+            audioProcess: null,
             player,
             voiceChannel
         };
         musicQueue.set(guildId, serverQueue);
 
-        // Set up player event listeners once
-        player.on(AudioPlayerStatus.Idle, () => {
-            playNextSong(guildId);
+        player.on('stateChange', (oldState, newState) => {
+            if (newState.status === AudioPlayerStatus.Idle && oldState.status !== AudioPlayerStatus.Idle) {
+                playNextSong(guildId);
+            }
         });
 
         player.on('error', error => {
             console.error('Player error:', error);
-            playNextSong(guildId);
         });
     }
 
     try {
-        // Check if it's a YouTube URL
         const isURL = query.includes('youtube.com') || query.includes('youtu.be');
 
         if (isURL) {
@@ -212,7 +221,6 @@ async function playMusic(interaction, guildId, voiceChannel) {
             });
         }
 
-        // Search YouTube
         const searchResults = await searchYouTube(query, 5);
 
         if (!searchResults || searchResults.length === 0) {
@@ -221,7 +229,6 @@ async function playMusic(interaction, guildId, voiceChannel) {
 
         const results = searchResults.slice(0, 5);
 
-        // Create embed with search results
         const embed = new EmbedBuilder()
             .setTitle('🎵 Select a Song')
             .setColor('#FF0000')
@@ -236,7 +243,6 @@ async function playMusic(interaction, guildId, voiceChannel) {
             });
         });
 
-        // Create selection buttons
         const row = new ActionRowBuilder();
         results.forEach((_, index) => {
             row.addComponents(
@@ -252,7 +258,6 @@ async function playMusic(interaction, guildId, voiceChannel) {
             components: [row]
         });
 
-        // Collector for button interactions
         const filter = i => i.user.id === interaction.user.id && i.customId.startsWith('music_');
         const collector = selectionMessage.createMessageComponentCollector({ filter, max: 1, time: 15000 });
 
@@ -293,90 +298,25 @@ async function playMusic(interaction, guildId, voiceChannel) {
     }
 }
 
-// Function to play the next song
-async function playNextSong(guildId) {
-    const serverQueue = musicQueue.get(guildId);
-
-    if (!serverQueue || serverQueue.queue.length === 0) {
-        if (serverQueue) {
-            serverQueue.currentlyPlaying = null;
-        }
-        const connection = getVoiceConnection(guildId);
-        if (connection) connection.destroy();
-        musicQueue.delete(guildId);
-        return;
-    }
-
-    const song = serverQueue.queue.shift();
-    serverQueue.currentlyPlaying = song;
-
-    try {
-        // Connect to voice channel if not connected
-        let connection = getVoiceConnection(guildId);
-        if (!connection) {
-            connection = joinVoiceChannel({
-                channelId: serverQueue.voiceChannel.id,
-                guildId,
-                adapterCreator: serverQueue.voiceChannel.guild.voiceAdapterCreator
-            });
-
-            // Wait for connection to be ready
-            connection.on(VoiceConnectionStatus.Disconnected, async () => {
-                try {
-                    await Promise.race([
-                        entersState(connection, VoiceConnectionStatus.Signalling, 5_000),
-                        entersState(connection, VoiceConnectionStatus.Connecting, 5_000),
-                    ]);
-                } catch (error) {
-                    console.error('Connection disconnected:', error);
-                    connection.destroy();
-                    musicQueue.delete(guildId);
-                }
-            });
-        }
-
-        const stream = createYtdlpStream(song.url);
-
-        // Add error handler for the stream
-        stream.on('error', (error) => {
-            console.error('Stream error:', error);
-            playNextSong(guildId);
-        });
-
-        const resource = createAudioResource(stream, {
-            inputType: StreamType.Arbitrary,
-            inlineVolume: true
-        });
-
-        // Add error handler for the resource
-        resource.playStream.on('error', (error) => {
-            console.error('Resource stream error:', error);
-            playNextSong(guildId);
-        });
-
-        serverQueue.player.play(resource);
-        connection.subscribe(serverQueue.player);
-
-    } catch (error) {
-        console.error('Error playing song:', error);
-        await playNextSong(guildId);
-    }
-}
-
-// Skip current song
-async function skipMusic(interaction, guildId) {
+async function skipMusic(interaction) {
+    const guildId = interaction.guild.id;
     const serverQueue = musicQueue.get(guildId);
 
     if (!serverQueue || !serverQueue.currentlyPlaying) {
         return interaction.reply({ content: 'No song is currently playing.', flags: MessageFlags.Ephemeral });
     }
 
-    serverQueue.player.stop();
+    if (serverQueue.audioProcess) {
+        serverQueue.audioProcess.kill();
+        serverQueue.audioProcess = null;
+    }
+
+    serverQueue.player.stop(true);
     interaction.reply({ content: '⏭️ Skipped the current song.' });
 }
 
-// Show the queue
-async function showQueue(interaction, guildId) {
+async function showQueue(interaction) {
+    const guildId = interaction.guild.id;
     const serverQueue = musicQueue.get(guildId);
 
     if (!serverQueue || serverQueue.queue.length === 0) {
@@ -409,8 +349,8 @@ async function showQueue(interaction, guildId) {
     interaction.reply({ embeds: [embed] });
 }
 
-// Shuffle the queue
-async function shuffleQueue(interaction, guildId) {
+async function shuffleQueue(interaction) {
+    const guildId = interaction.guild.id;
     const serverQueue = musicQueue.get(guildId);
 
     if (!serverQueue || serverQueue.queue.length < 2) {
@@ -425,8 +365,8 @@ async function shuffleQueue(interaction, guildId) {
     interaction.reply({ content: '🔀 Queue shuffled!' });
 }
 
-// Leave voice channel
-async function leaveChannel(interaction, guildId) {
+async function leaveChannel(interaction) {
+    const guildId = interaction.guild.id;
     const connection = getVoiceConnection(guildId);
 
     if (!connection) {
@@ -435,7 +375,10 @@ async function leaveChannel(interaction, guildId) {
 
     const serverQueue = musicQueue.get(guildId);
     if (serverQueue) {
-        serverQueue.player.stop();
+        if (serverQueue.audioProcess) {
+            serverQueue.audioProcess.kill();
+        }
+        serverQueue.player.stop(true);
     }
 
     connection.destroy();
@@ -443,8 +386,8 @@ async function leaveChannel(interaction, guildId) {
     interaction.reply({ content: '👋 Disconnected from voice channel.' });
 }
 
-// Show currently playing song
-async function nowPlaying(interaction, guildId) {
+async function nowPlaying(interaction) {
+    const guildId = interaction.guild.id;
     const serverQueue = musicQueue.get(guildId);
     const currentlyPlaying = serverQueue?.currentlyPlaying;
 
@@ -461,13 +404,22 @@ async function nowPlaying(interaction, guildId) {
             { name: 'Duration', value: currentlyPlaying.duration || 'Unknown', inline: true }
         );
 
-    // Only set thumbnail if it's a valid URL
     if (currentlyPlaying.thumbnail && currentlyPlaying.thumbnail.startsWith('http')) {
         embed.setThumbnail(currentlyPlaying.thumbnail);
     } else if (currentlyPlaying.thumbnail && currentlyPlaying.thumbnail.startsWith('//')) {
-        // Fix protocol-relative URLs
         embed.setThumbnail('https:' + currentlyPlaying.thumbnail);
     }
 
     interaction.reply({ embeds: [embed] });
 }
+
+module.exports = {
+    musicQueue,
+    formatDuration,
+    playMusic,
+    skipMusic,
+    showQueue,
+    shuffleQueue,
+    leaveChannel,
+    nowPlaying,
+};
