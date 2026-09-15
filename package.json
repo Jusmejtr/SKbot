@@ -9,7 +9,6 @@
   "author": "Jusmejtr",
   "license": "ISC",
   "dependencies": {
-    "@discordjs/opus": "^0.10.0",
     "@discordjs/voice": "^0.19.2",
     "canvas": "^3.2.3",
     "cron": "^4.4.0",
