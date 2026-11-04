@@ -196,7 +196,7 @@ async function playMusic(interaction) {
 
         player.on('stateChange', (oldState, newState) => {
             if (newState.status === AudioPlayerStatus.Idle && oldState.status !== AudioPlayerStatus.Idle) {
-                playNextSong(guildId);
+                playNextSong(guildId).catch(error => console.error('Error advancing queue:', error));
             }
         });
 
@@ -274,28 +274,36 @@ async function playMusic(interaction) {
         const collector = selectionMessage.createMessageComponentCollector({ filter, max: 1, time: 15000 });
 
         collector.on('collect', async i => {
-            const selectedIndex = parseInt(i.customId.split('_')[1]);
-            const selectedVideo = results[selectedIndex];
+            try {
+                // Acknowledge within 3s so a slow yt-dlp spawn cannot expire the interaction
+                await i.deferUpdate();
 
-            const song = {
-                url: selectedVideo.url || `https://www.youtube.com/watch?v=${selectedVideo.id}`,
-                title: selectedVideo.title,
-                duration: formatDuration(selectedVideo.duration),
-                author: selectedVideo.uploader || selectedVideo.channel || 'Unknown',
-                thumbnail: selectedVideo.thumbnail || selectedVideo.thumbnails?.[0]?.url
-            };
+                const selectedIndex = parseInt(i.customId.split('_')[1]);
+                const selectedVideo = results[selectedIndex];
 
-            serverQueue.queue.push(song);
+                const song = {
+                    url: selectedVideo.url || `https://www.youtube.com/watch?v=${selectedVideo.id}`,
+                    title: selectedVideo.title,
+                    duration: formatDuration(selectedVideo.duration),
+                    author: selectedVideo.uploader || selectedVideo.channel || 'Unknown',
+                    thumbnail: selectedVideo.thumbnail || selectedVideo.thumbnails?.[0]?.url
+                };
 
-            if (!serverQueue.currentlyPlaying) {
-                await playNextSong(guildId);
+                serverQueue.queue.push(song);
+
+                if (!serverQueue.currentlyPlaying) {
+                    await playNextSong(guildId);
+                }
+
+                await i.editReply({
+                    content: `🎵 Added to queue: **${song.title}** by ${song.author} (${song.duration})`,
+                    embeds: [],
+                    components: []
+                });
+            } catch (error) {
+                if (error.code === 10062) return;
+                console.error('Error handling song selection:', error);
             }
-
-            await i.update({
-                content: `🎵 Added to queue: **${song.title}** by ${song.author} (${song.duration})`,
-                embeds: [],
-                components: []
-            });
         });
 
         collector.on('end', (collected) => {
