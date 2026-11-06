@@ -3,6 +3,7 @@ const { joinVoiceChannel, createAudioResource, createAudioPlayer, AudioPlayerSta
 const ytdlp = require('youtube-dl-exec');
 const { spawn } = require('child_process');
 const path = require('path');
+const ffmpegPath = require('ffmpeg-static');
 
 const isWindows = process.platform === 'win32';
 const ytdlpPath = path.join(
@@ -86,6 +87,43 @@ function createYtdlpStream(url) {
     return process;
 }
 
+// Spawn ffmpeg ourselves instead of letting @discordjs/voice use prism-media's
+// FFmpeg wrapper, which breaks on newer Node.js (ERR_METHOD_NOT_IMPLEMENTED _write).
+function createAudioPipeline(url) {
+    const ytdlpProcess = createYtdlpStream(url);
+    const ffmpegProcess = spawn(ffmpegPath || 'ffmpeg', [
+        '-hide_banner', '-loglevel', 'error',
+        '-i', 'pipe:0',
+        '-analyzeduration', '0',
+        '-f', 's16le',
+        '-ar', '48000',
+        '-ac', '2',
+        'pipe:1'
+    ], {
+        stdio: ['pipe', 'pipe', 'pipe']
+    });
+
+    ffmpegProcess.on('error', (err) => console.error('ffmpeg process error:', err));
+    ffmpegProcess.stderr.on('data', (data) => {
+        const message = data.toString();
+        if (message.includes('Broken pipe')) return;
+        console.error('ffmpeg:', message.trim());
+    });
+    // Ignore EPIPE when ffmpeg is killed while yt-dlp is still writing
+    ffmpegProcess.stdin.on('error', () => { });
+    ytdlpProcess.stdout.on('error', () => { });
+
+    ytdlpProcess.stdout.pipe(ffmpegProcess.stdin);
+
+    return {
+        stream: ffmpegProcess.stdout,
+        kill() {
+            try { ytdlpProcess.kill(); } catch { }
+            try { ffmpegProcess.kill(); } catch { }
+        }
+    };
+}
+
 async function playNextSong(guildId) {
     const serverQueue = musicQueue.get(guildId);
 
@@ -143,9 +181,9 @@ async function playNextSong(guildId) {
             serverQueue.audioProcess.kill();
         }
 
-        const audioProcess = createYtdlpStream(song.url);
+        const audioProcess = createAudioPipeline(song.url);
         serverQueue.audioProcess = audioProcess;
-        const stream = audioProcess.stdout;
+        const stream = audioProcess.stream;
 
         stream.on('error', (error) => {
             if (error.code === 'ERR_STREAM_PREMATURE_CLOSE') return;
@@ -153,8 +191,7 @@ async function playNextSong(guildId) {
         });
 
         const resource = createAudioResource(stream, {
-            inputType: StreamType.Arbitrary,
-            inlineVolume: true
+            inputType: StreamType.Raw
         });
 
         resource.playStream.on('error', (error) => {
