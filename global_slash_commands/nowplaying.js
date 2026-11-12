@@ -4,7 +4,7 @@ const { nowPlaying } = require('../utils/music-player');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('nowplaying')
-        .setDescription('Show the currently playing song'),
+        .setDescription('Ukáže, čo práve hrá'),
 
     async execute(interaction) {
         await nowPlaying(interaction);

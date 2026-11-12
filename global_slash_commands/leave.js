@@ -4,7 +4,7 @@ const { leaveChannel } = require('../utils/music-player');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('leave')
-        .setDescription('Disconnect from the voice channel'),
+        .setDescription('Odpojí bota z voice roomky'),
 
     async execute(interaction) {
         await leaveChannel(interaction);

@@ -4,7 +4,7 @@ const { shuffleQueue } = require('../utils/music-player');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('shuffle')
-        .setDescription('Shuffle the queue'),
+        .setDescription('Zamieša poradie pesničiek'),
 
     async execute(interaction) {
         await shuffleQueue(interaction);

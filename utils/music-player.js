@@ -216,7 +216,7 @@ async function playMusic(interaction) {
     const voiceChannel = interaction.member.voice.channel;
 
     if (!voiceChannel) {
-        return interaction.followUp({ content: 'You must be in a voice channel!', flags: MessageFlags.Ephemeral });
+        return interaction.followUp({ content: 'Musíš byť vo voice roomke!', flags: MessageFlags.Ephemeral });
     }
 
     let serverQueue = musicQueue.get(guildId);
@@ -248,7 +248,7 @@ async function playMusic(interaction) {
         if (isURL) {
             const videoInfo = await getVideoInfo(query);
             if (!videoInfo) {
-                return interaction.followUp({ content: 'Could not get video info.', flags: MessageFlags.Ephemeral });
+                return interaction.followUp({ content: 'Nepodarilo sa načítať informácie o videu.', flags: MessageFlags.Ephemeral });
             }
 
             const song = {
@@ -266,22 +266,22 @@ async function playMusic(interaction) {
             }
 
             return interaction.followUp({
-                content: `🎵 Added to queue: **${song.title}** by ${song.author} (${song.duration})`
+                content: `🎵 Pridané do poradia: **${song.title}** – ${song.author} (${song.duration})`
             });
         }
 
         const searchResults = await searchYouTube(query, 5);
 
         if (!searchResults || searchResults.length === 0) {
-            return interaction.followUp({ content: 'No results found.', flags: MessageFlags.Ephemeral });
+            return interaction.followUp({ content: 'Nič som nenašiel.', flags: MessageFlags.Ephemeral });
         }
 
         const results = searchResults.slice(0, 5);
 
         const embed = new EmbedBuilder()
-            .setTitle('🎵 Select a Song')
+            .setTitle('🎵 Vyber pesničku')
             .setColor('#FF0000')
-            .setDescription('Click a button to select a song.');
+            .setDescription('Klikni na tlačidlo a vyber pesničku.');
 
         results.forEach((video, index) => {
             const duration = formatDuration(video.duration);
@@ -333,7 +333,7 @@ async function playMusic(interaction) {
                 }
 
                 await i.editReply({
-                    content: `🎵 Added to queue: **${song.title}** by ${song.author} (${song.duration})`,
+                    content: `🎵 Pridané do poradia: **${song.title}** – ${song.author} (${song.duration})`,
                     embeds: [],
                     components: []
                 });
@@ -345,13 +345,13 @@ async function playMusic(interaction) {
 
         collector.on('end', (collected) => {
             if (collected.size === 0) {
-                selectionMessage.edit({ content: 'Selection timed out.', embeds: [], components: [] }).catch(() => { });
+                selectionMessage.edit({ content: 'Čas na výber vypršal.', embeds: [], components: [] }).catch(() => { });
             }
         });
 
     } catch (error) {
         console.error('Error in playMusic:', error);
-        return interaction.followUp({ content: 'An error occurred while searching for the song.', flags: MessageFlags.Ephemeral });
+        return interaction.followUp({ content: 'Pri hľadaní pesničky nastala chyba.', flags: MessageFlags.Ephemeral });
     }
 }
 
@@ -360,12 +360,12 @@ async function skipMusic(interaction) {
     const serverQueue = musicQueue.get(guildId);
 
     if (!serverQueue || !serverQueue.currentlyPlaying) {
-        return interaction.reply({ content: 'No song is currently playing.', flags: MessageFlags.Ephemeral });
+        return interaction.reply({ content: 'Momentálne nič nehrá.', flags: MessageFlags.Ephemeral });
     }
 
     // If there's no next song in the queue, don't allow skipping
     if (!serverQueue.queue || serverQueue.queue.length === 0) {
-        return interaction.reply({ content: 'There is no next song in the queue to skip to.', flags: MessageFlags.Ephemeral });
+        return interaction.reply({ content: 'V poradí nie je ďalšia pesnička.', flags: MessageFlags.Ephemeral });
     }
 
     if (serverQueue.audioProcess) {
@@ -374,7 +374,7 @@ async function skipMusic(interaction) {
     }
 
     serverQueue.player.stop(true);
-    interaction.reply({ content: '⏭️ Skipped the current song.' });
+    interaction.reply({ content: '⏭️ Pesnička preskočená.' });
 }
 
 async function showQueue(interaction) {
@@ -385,10 +385,10 @@ async function showQueue(interaction) {
         const currentSong = serverQueue?.currentlyPlaying;
         if (currentSong) {
             return interaction.reply({
-                content: `**Now playing:** ${currentSong.title}\n\nThe queue is empty.`
+                content: `**Práve hrá:** ${currentSong.title}\n\nPoradie je prázdne.`
             });
         }
-        return interaction.reply({ content: 'The queue is empty.', flags: MessageFlags.Ephemeral });
+        return interaction.reply({ content: 'Poradie je prázdne.', flags: MessageFlags.Ephemeral });
     }
 
     const queueList = serverQueue.queue.slice(0, 10).map((song, index) =>
@@ -396,14 +396,14 @@ async function showQueue(interaction) {
     ).join('\n');
 
     const embed = new EmbedBuilder()
-        .setTitle('🎵 Music Queue')
+        .setTitle('🎵 Poradie pesničiek')
         .setColor('#FF0000')
         .setDescription(queueList)
-        .setFooter({ text: `Total songs in queue: ${serverQueue.queue.length}` });
+        .setFooter({ text: `Pesničiek v poradí: ${serverQueue.queue.length}` });
 
     if (serverQueue.currentlyPlaying) {
         embed.addFields({
-            name: '🔊 Now Playing',
+            name: '🔊 Práve hrá',
             value: `${serverQueue.currentlyPlaying.title || 'Unknown'} - ${serverQueue.currentlyPlaying.author || 'Unknown'}`
         });
     }
@@ -416,7 +416,7 @@ async function shuffleQueue(interaction) {
     const serverQueue = musicQueue.get(guildId);
 
     if (!serverQueue || serverQueue.queue.length < 2) {
-        return interaction.reply({ content: 'Not enough songs to shuffle.', flags: MessageFlags.Ephemeral });
+        return interaction.reply({ content: 'Na zamiešanie nie je dosť pesničiek.', flags: MessageFlags.Ephemeral });
     }
 
     for (let i = serverQueue.queue.length - 1; i > 0; i--) {
@@ -424,7 +424,7 @@ async function shuffleQueue(interaction) {
         [serverQueue.queue[i], serverQueue.queue[j]] = [serverQueue.queue[j], serverQueue.queue[i]];
     }
 
-    interaction.reply({ content: '🔀 Queue shuffled!' });
+    interaction.reply({ content: '🔀 Poradie zamiešané!' });
 }
 
 async function leaveChannel(interaction) {
@@ -432,7 +432,7 @@ async function leaveChannel(interaction) {
     const connection = getVoiceConnection(guildId);
 
     if (!connection) {
-        return interaction.reply({ content: 'Not connected to a voice channel.', flags: MessageFlags.Ephemeral });
+        return interaction.reply({ content: 'Nie som pripojený vo voice roomke.', flags: MessageFlags.Ephemeral });
     }
 
     const serverQueue = musicQueue.get(guildId);
@@ -445,7 +445,7 @@ async function leaveChannel(interaction) {
 
     connection.destroy();
     musicQueue.delete(guildId);
-    interaction.reply({ content: '👋 Disconnected from voice channel.' });
+    interaction.reply({ content: '👋 Odpojil som sa z voice roomky.' });
 }
 
 async function nowPlaying(interaction) {
@@ -454,16 +454,16 @@ async function nowPlaying(interaction) {
     const currentlyPlaying = serverQueue?.currentlyPlaying;
 
     if (!currentlyPlaying) {
-        return interaction.reply({ content: 'Nothing is playing right now.', flags: MessageFlags.Ephemeral });
+        return interaction.reply({ content: 'Momentálne nič nehrá.', flags: MessageFlags.Ephemeral });
     }
 
     const embed = new EmbedBuilder()
-        .setTitle('🔊 Now Playing')
+        .setTitle('🔊 Práve hrá')
         .setColor('#FF0000')
         .setDescription(`**${currentlyPlaying.title || 'Unknown'}**`)
         .addFields(
-            { name: 'Channel', value: currentlyPlaying.author || 'Unknown', inline: true },
-            { name: 'Duration', value: currentlyPlaying.duration || 'Unknown', inline: true }
+            { name: 'Kanál', value: currentlyPlaying.author || 'Unknown', inline: true },
+            { name: 'Dĺžka', value: currentlyPlaying.duration || 'Unknown', inline: true }
         );
 
     if (currentlyPlaying.thumbnail && currentlyPlaying.thumbnail.startsWith('http')) {

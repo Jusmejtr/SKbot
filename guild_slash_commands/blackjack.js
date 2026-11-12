@@ -1,13 +1,13 @@
 const { createCanvas, loadImage } = require('canvas');
 const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, AttachmentBuilder } = require('discord.js');
 const path = require('path');
-const { addMoney, removeMoney, getMoney } = require('../utils/economy-db');
+const db = require('../utils/db');
 
-let deck = [];
-let playerHand = [];
-let dealerHand = [];
-let canDoubleDown = false;
-let playing = false;
+// Kto práve hrá – každý hráč môže mať naraz jednu hru, viac hráčov môže hrať súčasne
+const activePlayers = new Set();
+
+// Výplaty sú vždy celé čísla
+const addMoney = (userId, amount) => db.addMoney(userId, Math.floor(amount));
 
 const imgSize = {
     cardWidth: 250,
@@ -22,12 +22,20 @@ module.exports = {
     name: 'blackjack',
     data: new SlashCommandBuilder()
         .setName('blackjack')
-        .setDescription('Let\'s play some blackjack')
+        .setDescription('Zahraj si blackjack')
         .addIntegerOption(option =>
-            option.setName('bet').setDescription('Your bet for this game').setRequired(true).setMinValue(20).setMaxValue(1000)
+            option.setName('bet').setDescription('Tvoja stávka').setRequired(true).setMinValue(20).setMaxValue(1000)
         ),
     async execute(interaction) {
         let userBet = interaction.options.getInteger('bet');
+        const userId = interaction.user.id;
+
+        // stav tejto hry (lokálny pre každú hru)
+        let deck = [];
+        let playerHand = [];
+        let dealerHand = [];
+        let canDoubleDown = false;
+        const endGame = () => activePlayers.delete(userId);
 
         function drawTextWithBorderBox(ctx, text, x, y, width, height, fontSize, textColor, borderColor, borderWidth, backgroundColor) {
             ctx.font = `${fontSize}px Arial`;
@@ -134,28 +142,22 @@ module.exports = {
             return handValue.soft !== handValue.hard ? `${handValue.soft}/${handValue.hard}` : `${handValue.hard}`;
         }
 
-        async function validateBet(user, bet) {
-            const money = await getMoney(user);
-            return money != null && bet <= money;
-        }
-
         async function startBlackjackGame() {
-            if (playing) {
-                await interaction.editReply("Currently another player is playing blackjack");
+            if (activePlayers.has(userId)) {
+                await interaction.editReply('Už máš rozohranú hru blackjacku');
                 return null;
             }
-            const validateMoney = await validateBet(interaction.user.id, userBet);
-            if (validateMoney == null) {
-                await interaction.editReply("You don't have economy account or some error occurred.");
+            const r = db.takeMoney(userId, userBet);
+            if (r === 'no_account') {
+                await interaction.editReply('Nemáš vytvorený účet. Vytvor si ho príkazom /createaccount');
                 return null;
-            } else if (validateMoney == false) {
-                await interaction.editReply("Sorry, you don't have enough money");
+            } else if (r === 'insufficient') {
+                await interaction.editReply('Nemáš dostatok coinov');
                 return null;
             }
-            await removeMoney(interaction.user.id, userBet);
+            activePlayers.add(userId);
             initializeDeck();
             shuffleDeck();
-            playing = true;
 
             playerHand = [deck.pop(), deck.pop()];
             dealerHand = [deck.pop(), deck.pop()];
@@ -167,11 +169,11 @@ module.exports = {
                     content: `**Gratulujem k blackjacku. Výhra: ${parseInt(userBet * 2.5)}**`,
                     files: [new AttachmentBuilder(await generateBlackjackTable(playerHand, dealerHand, true), { name: 'table.png' })],
                 });
-                await addMoney(interaction.user.id, userBet * 2.5);
-                playing = false;
+                addMoney(userId, userBet * 2.5);
+                endGame();
                 return null;
             } else {
-                canDoubleDown = await getMoney(interaction.user.id) >= userBet;
+                canDoubleDown = (db.getMoney(userId) ?? 0) >= userBet;
                 const row = new ActionRowBuilder()
                     .addComponents(
                         new ButtonBuilder().setCustomId('hit').setLabel('Hit').setStyle('Primary'),
@@ -207,7 +209,7 @@ module.exports = {
                         files: [new AttachmentBuilder(await generateBlackjackTable(playerHand, dealerHand, true), { name: 'table.png' })],
                         components: []
                     });
-                    playing = false;
+                    endGame();
                 } else if (playerHandValue.hard === 21) {
                     // 21 z 3+ kariet nie je blackjack – automaticky stojíme a porovnáme s dealerom
                     collector.stop("21");
@@ -223,7 +225,7 @@ module.exports = {
                         files: [new AttachmentBuilder(await generateBlackjackTable(playerHand, dealerHand, true), { name: 'table.png' })],
                         components: []
                     });
-                    playing = false;
+                    endGame();
                 } else {
                     const row = new ActionRowBuilder()
                         .addComponents(
@@ -252,9 +254,11 @@ module.exports = {
                     components: []
                 });
 
-                playing = false;
+                endGame();
             } else if (buttonInteraction.customId === 'double' && canDoubleDown) {
-                await removeMoney(interaction.user.id, userBet);
+                if (db.takeMoney(userId, userBet) !== 'ok') {
+                    return buttonInteraction.reply({ content: 'Na double už nemáš dostatok coinov', flags: 64 });
+                }
                 collector.stop("double");
                 let playerHandValue = calculateHandValue(playerHand);
                 let valueBeforeDouble = playerHandValue;
@@ -282,7 +286,7 @@ module.exports = {
                         components: []
                     });
                 }
-                playing = false;
+                endGame();
             }
         }
 
@@ -301,29 +305,39 @@ module.exports = {
                     components: []
                 });
             }
-            playing = false;
+            endGame();
         }
 
         function getResult(dealerHandValue, playerHandValue, double = false) {
             if (dealerHandValue.hard > 21) {
                 const winnings = double ? userBet * 4 : userBet * 2;
-                addMoney(interaction.user.id, winnings);
+                addMoney(userId, winnings);
                 return `**Dealer má too many, gratulujem k výhre ${winnings}**`;
             } else if (playerHandValue.hard > dealerHandValue.hard) {
                 const winnings = double ? userBet * 4 : userBet * 2;
-                addMoney(interaction.user.id, winnings);
+                addMoney(userId, winnings);
                 return `**Gratulujem k výhre ${winnings}**`;
             } else if (playerHandValue.hard < dealerHandValue.hard) {
                 return '**V tomto kole vyhráva dealer. Prajem viacej štastia do ďalšieho kola**';
             } else {
                 const winnings = double ? userBet * 2 : userBet;
-                addMoney(interaction.user.id, winnings);
+                addMoney(userId, winnings);
                 return '**A je to remíza. Prajem viacej štastia do ďalšieho kola**';
             }
         }
 
         await interaction.deferReply();
-        const result = await startBlackjackGame();
+        let result;
+        try {
+            result = await startBlackjackGame();
+        } catch (err) {
+            // ak sa hra nepodarí ani začať, vrátime stávku
+            if (activePlayers.has(userId)) {
+                endGame();
+                addMoney(userId, userBet);
+            }
+            throw err;
+        }
 
         if (result == null) return;
 

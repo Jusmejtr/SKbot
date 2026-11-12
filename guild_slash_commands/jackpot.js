@@ -1,357 +1,93 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const fs = require('fs');
-const { respond } = require('../utils/interaction');
+const db = require('../utils/db');
 
-// Logika jackpotu je prenesená z pôvodného *jackpot príkazu.
-// Prvá odpoveď ide ako odpoveď na slash command, ďalšie ako followUp / správy do roomky.
+const BET_WINDOW_MS = 30000;
+const MAX_PLAYERS = 3;
+const COLOR = '#9032df';
+
+// Rozbehnuté kolo jackpotu (len v pamäti; stávky sú navyše v DB, aby sa po páde bota vrátili)
+let kolo = null; // { channel, bets: Map<userId, { tag, amount }>, closesAt, vyhodnocuje }
+
+const spolu = () => [...kolo.bets.values()].reduce((s, b) => s + b.amount, 0);
+
+async function vyhodnot() {
+    const { channel, bets } = kolo;
+    kolo.vyhodnocuje = true;
+    const hraci = [...bets.entries()];
+    const pot = spolu();
+
+    try {
+        if (hraci.length < 2) {
+            const [userId, b] = hraci[0];
+            db.addMoney(userId, b.amount);
+            await channel.send({ embeds: [new EmbedBuilder().setColor(COLOR).setTitle('Nikto ďalší sa nepripojil, jackpot skončil').setDescription(`${b.tag}, coiny ti boli vrátené`)] });
+            return;
+        }
+
+        // vážený náhodný výber – kto stavil viac, má väčšiu šancu
+        let los = Math.random() * pot;
+        let vyherca = hraci[hraci.length - 1];
+        for (const h of hraci) {
+            los -= h[1].amount;
+            if (los < 0) { vyherca = h; break; }
+        }
+        db.addMoney(vyherca[0], pot);
+
+        const embed = new EmbedBuilder()
+            .setColor(COLOR)
+            .setTitle('VÝHERCA')
+            .setDescription(`**${vyherca[1].tag}** vyhral **${pot}** coinov`)
+            .addFields(hraci.map(([, b], i) => ({
+                name: `${i + 1}. ${b.tag}`,
+                value: `stávka: ${b.amount}, šanca: ${(b.amount / pot * 100).toFixed(2)}%`,
+            })));
+        await channel.send({ embeds: [embed] });
+    } catch (err) {
+        console.error('Chyba pri vyhodnotení jackpotu:', err);
+    } finally {
+        db.clearJackpotBets();
+        kolo = null;
+    }
+}
+
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('jackpot')
-        .setDescription('Jackpot hra (2-3 hráči, kto stavil viac, má väčšiu šancu)')
+        .setDescription(`Jackpot hra (2-${MAX_PLAYERS} hráči, kto stavil viac, má väčšiu šancu)`)
         .addIntegerOption(o => o.setName('bet').setDescription('Stávka (minimálne 20)').setRequired(true).setMinValue(20)),
-    async execute(interaction, db) {
-        let bet = interaction.options.getInteger('bet');
-        await interaction.deferReply();
+    async execute(interaction) {
+        const bet = interaction.options.getInteger('bet');
+        const user = interaction.user;
 
-            let uzivatel = interaction.user.id;
+        if (kolo?.vyhodnocuje) return interaction.reply('Jackpot sa práve vyhodnocuje, skús to o chvíľu');
+        if (kolo && kolo.channel.id !== interaction.channel.id) {
+            return interaction.reply(`Jackpot práve beží v roomke ${kolo.channel}`);
+        }
+        if (kolo && !kolo.bets.has(user.id) && kolo.bets.size >= MAX_PLAYERS) {
+            return interaction.reply(`Dosiahol sa maximálny počet hráčov (${MAX_PLAYERS})`);
+        }
 
-            db.collection('economy').doc(uzivatel).get().then((d) => {
-                if(!d.exists) return respond(interaction, "nemáš vytvorený účet");  
+        const r = db.takeMoney(user.id, bet);
+        if (r === 'no_account') return interaction.reply('Nemáš vytvorený účet');
+        if (r === 'insufficient') return interaction.reply('Nemáš toľko peňazí');
+        db.addJackpotBet(user.id, bet);
 
-                var hodnota = d.data().money;
-                if(hodnota < 20) return respond(interaction, "Nemáš dostatok financií na stávkovanie, minimálna stávka 20 coinov");
-                if(isNaN(bet)) return respond(interaction, "Formát čísla je nesprávny");
-                if(bet != Math.floor(bet)) return respond(interaction, "Musíš zadať číslo");
-                if(hodnota < bet) return respond(interaction, "Nemáš toľko peňazí");
-                if(bet < 20) return respond(interaction, "Menej ako 20 coinov nemôžeš staviť");
-                try{
-                    bet = parseInt(bet);
-                }catch{
-                    return respond(interaction, "musíš zadať celé číslo");
-                }
+        const novy = !kolo;
+        if (novy) {
+            kolo = { channel: interaction.channel, bets: new Map(), closesAt: Date.now() + BET_WINDOW_MS, vyhodnocuje: false };
+            setTimeout(vyhodnot, BET_WINDOW_MS);
+        }
+        const predtym = kolo.bets.get(user.id)?.amount ?? 0;
+        kolo.bets.set(user.id, { tag: user.tag, amount: predtym + bet });
 
-                db.collection('statusy').doc('status').get().then((q) => {
-                    var status = q.data().stav;
+        const zostava = Math.max(0, Math.round((kolo.closesAt - Date.now()) / 1000));
+        const embed = new EmbedBuilder()
+            .setTitle('Jackpot stávka')
+            .setColor(COLOR)
+            .addFields({ name: user.tag, value: `stavil: ${bet}, celkom stavených: ${predtym + bet}` })
+            .setFooter({ text: `V banku: ${spolu()} coinov • hráči: ${kolo.bets.size}/${MAX_PLAYERS} • koniec o ${zostava} s` });
+        if (novy) embed.setDescription(`Jackpot začal! Ak sa do ${BET_WINDOW_MS / 1000} sekúnd nikto nepripojí, coiny sa vrátia.`);
 
-                    if(status === 'off'){                                                           //OFF
-                        db.collection('jackpot').doc(interaction.user.id).set({
-                            'meno': interaction.user.tag,
-                            'id': interaction.user.id,
-                            'stavka': bet,
-                            'sanca': 0,
-                        }).then(() => {
-                        db.collection('statusy').doc('status').update({
-                            'ludia': 1,
-                            'stav': "on",
-                            'celkom': bet,
-                        });
-                        hodnota -= bet;
-                        db.collection('economy').doc(uzivatel).update({
-                            'money': hodnota
-                        });
-                        fs.writeFile("temp.txt", `${interaction.user.id}\n`, function (err) {
-                            if (err) console.log(err);
-                            console.log("Successfully Written to File.");
-                        });
-                        let embed = new EmbedBuilder();
-                        embed.setTitle("Jackpot stávka");
-                        embed.setColor("#9032df");
-                        embed.addFields({name: interaction.user.tag, value:`stavil: ${bet}, celkom stavených: ${bet}`});
-                        
-                        let embedik = new EmbedBuilder();
-                        embedik.setTitle("Ak sa do 30 sekúnd nikto nepripojí, jackpot skončí");
-                        embedik.setColor("#9032df");
-                        respond(interaction, {embeds: [embed, embedik]});
-
-                        }).then(() => {
-                            setTimeout(function(){
-                                db.collection('statusy').doc('status').update({
-                                    'stav': "zaver",
-                                });
-                            }, 30000);
-
-                            setTimeout(function(){
-                                db.collection('statusy').doc('status').get().then((b) =>{
-                                    var pocet_ludi = b.data().ludia;
-                                    if(pocet_ludi < 2){
-                                        db.collection('jackpot').doc(interaction.user.id).get().then((jak) => {
-                                            var kolko = jak.data().stavka;
-                                            db.collection('economy').doc(uzivatel).get().then((o) => {
-                                                var cislicko = o.data().money;
-                                                cislicko = cislicko + kolko;
-                                                db.collection('economy').doc(uzivatel).update({
-                                                    'money': cislicko
-                                                });                
-                                            });
-                                        }).then(() => {
-                                            db.collection('jackpot').doc(interaction.user.id).delete();
-                                        }).catch(console.error);
-                                        db.collection('statusy').doc('status').update({
-                                            'ludia': 0,
-                                            'stav': "off",
-                                            'celkom': 0,
-                                        });
-                                        fs.unlink('temp.txt', (err) => {
-                                            if(err) console.log(err);
-                                        });
-                                        let embedos = new EmbedBuilder();
-                                        embedos.setColor("#9032df");
-                                        embedos.setTitle("Nikto ďalší sa nepripojil, jackpot skončil");
-                                        return respond(interaction, {embeds: [embedos]});
-                                    }else if(pocet_ludi > 3){
-                                        db.collection('statusy').doc('status').update({
-                                            'stav': "broken",
-                                        });
-                                        return respond(interaction, "Bol zistený prekročený limit hráčov v jackpote. Jackpot sa automaticky zablokoval. Coiny budú vrátené po príchode admina");
-                                    }else{
-                                        db.collection('statusy').doc('status').update({
-                                            'stav': "odmeny",
-                                        });
-                                        //fs.writeFileSync('sance.txt', '');
-                                        db.collection('statusy').doc('status').get().then((u) => {
-                                            var nieco = fs.readFileSync('temp.txt').toString().split("\n");
-
-                                            const x = [];
-
-                                            for (i in nieco){
-                                                x.push(nieco[i]);
-                                            }
-                                            var celkovo = u.data().ludia;
-                                            var peniaze_spolu = u.data().celkom;
-                                            for(let i=0; i < celkovo; i++){
-                                                var menucko = x[i];//menucko = id hraca
-                                                console.log(`meno ${i}: ${menucko}`);
-                                                db.collection('jackpot').doc(menucko).get().then((h) =>{
-                                                    var mienko = h.data().meno;
-                                                    var idcko = h.data().id;
-                                                    var a = h.data().stavka;
-                                                    a = parseInt(a);
-                                                    var sanca = 100 / peniaze_spolu;
-                                                    var sancecka = sanca * a;
-                                                    sancecka = sancecka.toFixed(2);
-                                                    db.collection('jackpot').doc(idcko).update({
-                                                        'sanca': sancecka,
-                                                    }); 
-                                                    respond(interaction, `${i+1} ${mienko}, stávka: ${a}, šanca: ${sancecka}%`);
-                                                });
-                                            }
-                                            setTimeout(function(){
-                                                let vyherca = new EmbedBuilder();
-                                                vyherca.setColor("#9032df");
-                                                vyherca.setTitle("VÝHERCA");
-
-                                                switch (celkovo) {
-                                                    case 2://1-25,26-50,51-75,76-100 10,20,30,40
-                                                        //1-50,51-100
-                                                        db.collection('jackpot').doc(x[0]).get().then((ew) => {
-                                                            let meno = ew.data().meno;
-                                                            var stavecka = ew.data().sanca;
-                                                            let cisielko = Math.floor(Math.random() * 100) + 1;
-                                                            respond(interaction, `random cislo: ${cisielko}`);
-                                                            if(cisielko <= stavecka){
-                                                                vyherca.setDescription(`${meno} vyhral ${peniaze_spolu}`);
-                                                                respond(interaction, {embeds: [vyherca]});
-                                                                db.collection('economy').doc(`${x[0]}`).get().then((j) => {
-                                                                    var peniazecky = j.data().money;
-                                                                    peniazecky += peniaze_spolu;
-                                                                    db.collection('economy').doc(`${x[0]}`).update({
-                                                                        'money': peniazecky
-                                                                    }); 
-                                                                });
-                                                            }else if(cisielko > stavecka){
-                                                                db.collection('jackpot').doc(x[1]).get().then((t) => {
-                                                                    let meno = t.data().meno;
-                                                                    vyherca.setDescription(`${meno} vyhral ${peniaze_spolu}`);
-                                                                    respond(interaction, {embeds: [vyherca]});
-                                                                    db.collection('economy').doc(`${x[1]}`).get().then((ja) => {
-                                                                        var peniazecky2 = ja.data().money;
-                                                                        peniazecky2 += peniaze_spolu;
-                                                                        db.collection('economy').doc(`${x[1]}`).update({
-                                                                            'money': peniazecky2
-                                                                        }); 
-                                                                    });
-                                                                });
-                                                            }else{
-                                                                respond(interaction, "Nastal error (kód 2)");
-                                                                respond(interaction, `x0: ${x[0]}, x1: ${x[1]}, rnd: ${cisielko}`);
-                                                                db.collection('statusy').doc('status').update({
-                                                                    'stav': "chyby2",
-                                                                });
-                                                            }
-                                                            
-                                                        });
-                                                        break;
-                                                    case 3:
-                                                        //1-30,31-60,61-100
-                                                        db.collection('jackpot').doc(x[0]).get().then((aja) =>{
-                                                            let meno = aja.data().meno;
-                                                            var eno0 = aja.data().sanca;
-                                                            let cisielkoo = Math.floor(Math.random() * 100) + 1;
-
-                                                            respond(interaction, `random cislo: ${cisielkoo}`);
-                                                                
-                                                                db.collection('jackpot').doc(x[2]).get().then((pok) =>{
-                                                                    var eno2 = pok.data().sanca;
-                                                                    let cislo_minus100 = 100 - eno2;
-                                                                    if(cisielkoo <= eno0){
-                                                                        vyherca.setDescription(`${meno} vyhral ${peniaze_spolu}`);
-                                                                        respond(interaction, {embeds: [vyherca]});
-                                                                        db.collection('economy').doc(`${x[0]}`).get().then((j) => {
-                                                                            var peniazecky = j.data().money;
-                                                                            peniazecky += peniaze_spolu;
-                                                                            db.collection('economy').doc(`${x[0]}`).update({
-                                                                                'money': peniazecky
-                                                                            }); 
-                                                                        });
-                                                                    }else if(cisielkoo > cislo_minus100){
-                                                                        db.collection('jackpot').doc(x[2]).get().then((b) => {
-                                                                            let meno = b.data().meno;
-                                                                            vyherca.setDescription(`${meno} vyhral ${peniaze_spolu}`);
-                                                                            respond(interaction, {embeds: [vyherca]});
-                                                                            db.collection('economy').doc(`${x[2]}`).get().then((ja) => {
-                                                                                var peniazecky2 = ja.data().money;
-                                                                                peniazecky2 += peniaze_spolu;
-                                                                                db.collection('economy').doc(`${x[2]}`).update({
-                                                                                    'money': peniazecky2
-                                                                                }); 
-                                                                            });
-                                                                        });
-                                                                    }else if(cisielkoo > eno0 && cisielkoo <= cislo_minus100){
-                                                                        db.collection('jackpot').doc(x[1]).get().then((c) => {
-                                                                            let meno = c.data().meno;
-                                                                            vyherca.setDescription(`${meno} vyhral ${peniaze_spolu}`);
-                                                                            respond(interaction, {embeds: [vyherca]});
-                                                                            db.collection('economy').doc(`${x[1]}`).get().then((ja) => {
-                                                                                var peniazecky3 = ja.data().money;
-                                                                                peniazecky3 += peniaze_spolu;
-                                                                                db.collection('economy').doc(`${x[1]}`).update({
-                                                                                    'money': peniazecky3
-                                                                                }); 
-                                                                            });
-                                                                        });
-                                                                    }else{
-                                                                        respond(interaction, "Nastal error (kód 3)");
-                                                                        respond(interaction, `x0: ${x[0]}, x1: ${x[1]}, x2: ${x[2]}, rnd: ${cisielkoo}`);
-                                                                        db.collection('statusy').doc('status').update({
-                                                                            'stav': "chyba3",
-                                                                        });
-                                                                    }
-                                                                    
-                                                                });
-                                                        });
-                                                        break;
-                                                    default:
-                                                        respond(interaction, "Error, výhra nebola vyplatená z dôvodu, že v databáze sa nachádzajú viac ako traja hráči. Prosím chybu nahláste adminovi");
-                                                        break;
-                                                }
-                                                try {
-                                                    fs.unlinkSync('temp.txt')
-                                                } catch(err10) {
-                                                    console.error(err10)
-                                                }
-                                                db.collection('statusy').doc('status').update({
-                                                    'ludia': 0,
-                                                    'stav': "off",
-                                                    'celkom': 0,
-                                                });
-                                            }, 500);
-                                            setTimeout(function(){
-                                                db.collection("jackpot").get().then(res => {
-                                                    res.forEach(element => {
-                                                    element.ref.delete();
-                                                    });
-                                                });
-                                            }, 750);
-                                            setTimeout(function(){
-                                                db.collection('jackpot').doc('test').set({
-                                                    'test': "cau",
-                                                });
-                                            }, 950);
-                                        }).catch(console.error);
-                                    }
-                                });
-                            }, 35000);
-                        }).catch(console.error);
-                    } else if(status === 'on'){                                                                     //ON
-                        db.collection('jackpot').doc(interaction.user.id).get().then((k) => {
-                            if(k.exists){
-                                var suma = k.data().stavka;
-
-                                hodnota -= bet;
-                                db.collection('economy').doc(interaction.user.id).update({
-                                    'money': hodnota,
-                                });    
-                                suma += bet;
-
-                                let embed = new EmbedBuilder();
-                                embed.setColor("#9032df");
-                                embed.setTitle("Jackpot stávka");
-                                embed.addFields({name: interaction.user.tag, value: `stavil: ${bet}, celkom stavených ${suma}`});
-                                respond(interaction, {embeds: [embed]});
-
-                                db.collection('jackpot').doc(interaction.user.id).update({
-                                    'stavka': suma,
-                                });
-                                db.collection('statusy').doc('status').get().then((n) => {
-                                    var sumcek = n.data().celkom;
-                                    sumcek += bet;
-                                    db.collection('statusy').doc('status').update({
-                                        'celkom': sumcek,
-                                    });    
-                                });
-                            }else{
-                                db.collection('statusy').doc('status').get().then((ono) => {
-                                    var cislo = ono.data().ludia;
-                                    if(cislo > 2) return respond(interaction, "Dosiahol sa maximálny počet ľudí");// max pocet ludi
-                                    
-                                    db.collection('economy').doc(interaction.user.id).get().then((a) => {
-                                        var peniazky = a.data().money;
-                                        peniazky -= bet;
-                                        db.collection('economy').doc(interaction.user.id).update({
-                                            'money': peniazky,
-                                        });
-                                        db.collection('jackpot').doc(interaction.user.id).set({
-                                            'meno': interaction.user.tag,
-                                            'id': interaction.user.id,
-                                            'stavka': bet,
-                                            'sanca': 0,
-                                        });
-                                        db.collection('statusy').doc('status').get().then((s) => {
-                                            var sum = s.data().celkom;
-                                            sum = parseInt(sum);
-                                            sum += bet;
-                                            var lidicky = s.data().ludia;
-                                            lidicky += 1;
-                                            db.collection('statusy').doc('status').update({
-                                                'celkom': sum,
-                                                'ludia': lidicky,
-                                            });   
-                                        });
-                                        
-                                    });
-                                    fs.appendFile('temp.txt', `${interaction.user.id}\n`, function (err) {
-                                        if (err) return console.log(err);
-                                        console.log('Appended!');
-                                    });
-                                    let embed1 = new EmbedBuilder();
-                                    embed1.setColor("#9032df");
-                                    embed1.setTitle("Jackpot stávka");
-                                    embed1.addFields({name: interaction.user.tag, value: `stavil: ${bet}, celkom stavených ${bet}`});
-                                    respond(interaction, {embeds: [embed1]});
-                                });
-                            }
-                        });
-                    } else if(status == 'odmeny'){
-                        respond(interaction, "Jackpot práve skončil a vytvárajú sa výsledky, prosím počkaj chvíľu a tak zopakuj command");
-                    } else if(status == 'zaver'){
-                        respond(interaction, "5 sekúnd pred vyhodnotením jackpotu nemôžeš dať stávku");
-                    } else if(status == 'broken'){
-                        respond(interaction, "Jackpot je momentálne pozastavený pretože bola naposledy zle vyhodotená výhra. Jackpot bude znovu spustený po príchode admina");
-                    }
-                     else{
-                        respond(interaction, "Nastala chyba");
-                    }
-                });
-            });
+        return interaction.reply({ embeds: [embed] });
     }
 }

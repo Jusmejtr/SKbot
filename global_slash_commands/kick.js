@@ -10,7 +10,7 @@ module.exports = {
         .addStringOption(o => o.setName('reason').setDescription('Dôvod')),
     async execute(interaction) {
         if (!interaction.member.permissions.has(PermissionFlagsBits.KickMembers)) {
-            return interaction.reply({ content: "You don't have permission **KICK_MEMBERS**", flags: MessageFlags.Ephemeral });
+            return interaction.reply({ content: 'Nemáš oprávnenie **Vyhodiť členov**', flags: MessageFlags.Ephemeral });
         }
         const hrac = interaction.options.getMember('user');
         const dovod = interaction.options.getString('reason');

@@ -14,7 +14,7 @@ function hasAnyRole(member, ...roleIds) {
 
 // Pošle správu do logs roomky, ak existuje
 function sendLog(client, text) {
-    const channel = client.channels.cache.get(process.env.LOGS_CHANNEL_ID);
+    const channel = client.channels.cache.get(require('../config').channels.logs);
     if (channel) channel.send(text).catch(console.error);
 }
 

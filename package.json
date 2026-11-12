@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js",
+    "deploy": "node deploy-commands.js",
+    "migrate": "node scripts/migrate-firestore.js"
   },
   "author": "Jusmejtr",
   "license": "ISC",
@@ -21,5 +23,8 @@
     "libsodium-wrappers": "^0.8.4",
     "node-fetch": "^3.3.2",
     "youtube-dl-exec": "^3.1.19"
+  },
+  "engines": {
+    "node": ">=22.13"
   }
 }

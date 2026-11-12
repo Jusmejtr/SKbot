@@ -9,7 +9,7 @@ const REACTION_TIMEOUT_MS = 4000;
 // Kliknutie pravým na správu -> Apps -> "React with emote"
 module.exports = {
     data: new ContextMenuCommandBuilder()
-        .setName('React with emote')
+        .setName('Reagovať emotom')
         .setType(ApplicationCommandType.Message)
         .setContexts(InteractionContextType.Guild),
     async execute(interaction) {
@@ -40,7 +40,7 @@ module.exports = {
         const nazov = (vstup.match(/^<a?:(\w+):\d+>$/)?.[1]) ?? vstup.replace(/^:|:$/g, '');
 
         const emotikon = interaction.client.emojis.cache.find(e => e.name === nazov);
-        if (!emotikon) return odoslane.reply({ content: 'Cannot find emote', flags: MessageFlags.Ephemeral });
+        if (!emotikon) return odoslane.reply({ content: 'Taký emote som nenašiel', flags: MessageFlags.Ephemeral });
 
         await cielovaSprava.react(emotikon);
         await odoslane.reply({ content: `Pridal som ${emotikon}, klikni na reakciu do ${REACTION_TIMEOUT_MS / 1000} sekúnd`, flags: MessageFlags.Ephemeral });

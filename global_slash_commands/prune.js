@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, PermissionsBitField, MessageFlags, InteractionContextType } = require('discord.js');
 const { hasAnyRole, sendLog } = require('../utils/interaction');
+const config = require('../config');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -9,15 +10,15 @@ module.exports = {
         .addIntegerOption(o => o.setName('count').setDescription('Počet správ (1-100)').setRequired(true).setMinValue(1).setMaxValue(100)),
     async execute(interaction) {
         const pocet = interaction.options.getInteger('count');
-        const naSkServeri = interaction.guild.id === process.env.SERVER_ID;
+        const naSkServeri = interaction.guild.id === config.guildId;
 
         if (naSkServeri) {
-            const { ADMIN_ROLE_ID, MODERATOR_ROLE_ID, SBS_ROLE_ID } = process.env;
-            if (!hasAnyRole(interaction.member, ADMIN_ROLE_ID, MODERATOR_ROLE_ID, SBS_ROLE_ID)) {
+            const { admin, moderator, sbs } = config.roles;
+            if (!hasAnyRole(interaction.member, admin, moderator, sbs)) {
                 return interaction.reply({ content: 'Na tento príkaz nemáš práva.', flags: MessageFlags.Ephemeral });
             }
         } else if (!interaction.member.permissions.has(PermissionsBitField.Flags.ManageMessages)) {
-            return interaction.reply({ content: "You don't have permission **MANAGE_MESSAGES**", flags: MessageFlags.Ephemeral });
+            return interaction.reply({ content: 'Nemáš oprávnenie **Spravovať správy**', flags: MessageFlags.Ephemeral });
         }
 
         await interaction.deferReply({ flags: MessageFlags.Ephemeral });

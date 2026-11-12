@@ -1,5 +1,3 @@
-// Automatické nahrádzanie :emotov: v správach (cez webhook), aby sa dali použiť emoty aj bez Nitra.
-// Nie je to príkaz – volá sa z messageCreate v index.js.
 module.exports = {
     async handleEmoteMessage(bot, message){
         let regex = /\:[a-zA-z0-9]{2,}\:/g;

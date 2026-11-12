@@ -4,10 +4,10 @@ const { playMusic } = require('../utils/music-player');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('play')
-        .setDescription('Play a song')
+        .setDescription('Prehrá pesničku')
         .addStringOption(option =>
             option.setName('query')
-                .setDescription('YouTube URL or search term')
+                .setDescription('YouTube odkaz alebo názov pesničky')
                 .setRequired(true)),
 
     async execute(interaction) {

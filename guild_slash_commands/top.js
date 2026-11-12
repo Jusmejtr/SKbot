@@ -1,32 +1,23 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const { hasAnyRole } = require('../utils/interaction');
+const db = require('../utils/db');
+const config = require('../config');
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('top')
         .setDescription('Rebríček užívateľov s najviac coinami'),
-    async execute(interaction, db) {
-        await interaction.deferReply();
-
-        const vip = process.env.VIP_ROLE_ID;
-        const helper = process.env.MODERATOR_ROLE_ID;
-        const sbs = process.env.SBS_ROLE_ID;
-        const pocet = hasAnyRole(interaction.member, vip, helper, sbs) ? 5 : 3;
-
-        const zorad = await db.collection('economy').orderBy('money', 'desc').limit(pocet).get();
-        if (zorad.empty) return interaction.editReply('Chybné dáta');
+    execute(interaction) {
+        const { vip, moderator, sbs } = config.roles;
+        const pocet = hasAnyRole(interaction.member, vip, moderator, sbs) ? 5 : 3;
+        const top = db.getTop(pocet);
+        if (top.length === 0) return interaction.reply('Zatiaľ nikto nemá účet');
 
         const embed = new EmbedBuilder()
             .setTitle(`TOP ${pocet} s najviac coinami`)
             .setColor('#b7d5f0')
+            .addFields(top.map((u, i) => ({ name: `${i + 1}. ${u.name}`, value: String(u.money) })))
             .setTimestamp();
-
-        let poradie = 1;
-        zorad.forEach(doc => {
-            embed.addFields({ name: `${poradie}. ${doc.data().meno}`, value: String(doc.data().money) });
-            poradie++;
-        });
-
-        return interaction.editReply({ embeds: [embed] });
+        return interaction.reply({ embeds: [embed] });
     }
 }

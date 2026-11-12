@@ -4,7 +4,7 @@ const { skipMusic } = require('../utils/music-player');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('skip')
-        .setDescription('Skip the current song'),
+        .setDescription('Preskočí aktuálnu pesničku'),
 
     async execute(interaction) {
         await skipMusic(interaction);

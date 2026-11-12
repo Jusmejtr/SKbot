@@ -4,12 +4,12 @@ module.exports = {
     name: 'iq',
     data: new SlashCommandBuilder()
 		.setName('iq')
-		.setDescription('Whats your IQ?'),
+		.setDescription('Aké máš IQ?'),
     execute(interaction){
         let cislo = Math.floor(Math.random() * 150) + 1;
 
         const embed = {
-            title: `Your IQ is ${cislo}`,
+            title: `Tvoje IQ je ${cislo}`,
             color: 0x00ff00
         };
         
