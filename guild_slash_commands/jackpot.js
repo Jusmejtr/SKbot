@@ -2,7 +2,7 @@ const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const db = require('../utils/db');
 
 const BET_WINDOW_MS = 30000;
-const MAX_PLAYERS = 3;
+const MAX_PLAYERS = 5;
 const COLOR = '#9032df';
 
 // Rozbehnuté kolo jackpotu (len v pamäti; stávky sú navyše v DB, aby sa po páde bota vrátili)
@@ -53,7 +53,7 @@ async function vyhodnot() {
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('jackpot')
-        .setDescription(`Jackpot hra (2-${MAX_PLAYERS} hráči, kto stavil viac, má väčšiu šancu)`)
+        .setDescription(`Jackpot hra (2-${MAX_PLAYERS} hráčov, kto stavil viac, má väčšiu šancu)`)
         .addIntegerOption(o => o.setName('bet').setDescription('Stávka (minimálne 20)').setRequired(true).setMinValue(20)),
     async execute(interaction) {
         const bet = interaction.options.getInteger('bet');
