@@ -48,7 +48,7 @@ module.exports = {
         
         db.collection('economy').doc(interaction.user.id).get().then((q) => {
             if(!q.exists){
-                return interaction.reply({content: "You don't have account. You need to create it with *createaccount"});
+                return interaction.reply({content: "You don't have account. You need to create it with /createaccount"});
             }
             hodnota = q.data().daily;
             peniaze = q.data().money;

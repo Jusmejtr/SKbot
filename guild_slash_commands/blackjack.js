@@ -19,7 +19,7 @@ const imgSize = {
 };
 
 module.exports = {
-    name: 'balance',
+    name: 'blackjack',
     data: new SlashCommandBuilder()
         .setName('blackjack')
         .setDescription('Let\'s play some blackjack')
@@ -209,8 +209,8 @@ module.exports = {
                     });
                     playing = false;
                 } else if (playerHandValue.hard === 21) {
-                    collector.stop("win");
-                    addMoney(interaction.user.id, userBet * 2);
+                    // 21 z 3+ kariet nie je blackjack – automaticky stojíme a porovnáme s dealerom
+                    collector.stop("21");
 
                     let dealerHandValue = calculateHandValue(dealerHand);
                     while (dealerHandValue.hard < 17) {
@@ -219,7 +219,7 @@ module.exports = {
                     }
 
                     await interaction.editReply({
-                        content: `Karta na ${handValueString(valueBeforeHit)}. **Gratulujem, máte blackjack. Výhra: ${userBet * 2}**`,
+                        content: `Karta na ${handValueString(valueBeforeHit)}. Máte 21, stojíme. ${getResult(dealerHandValue, playerHandValue)}`,
                         files: [new AttachmentBuilder(await generateBlackjackTable(playerHand, dealerHand, true), { name: 'table.png' })],
                         components: []
                     });

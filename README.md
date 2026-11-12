@@ -5,7 +5,7 @@ My project, which I created during high school in my free time for my Discord se
 
 The Discord bot was made with JavaScript on Node.js.
 
-Bot currently running on discord.js v14. Newly supports some slash command but not many.
+Bot currently running on discord.js v14. All commands are slash commands (no more `*` prefix).
 
 Functions:
 

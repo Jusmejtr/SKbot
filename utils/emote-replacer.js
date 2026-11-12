@@ -1,14 +1,11 @@
-require('dotenv').config();
-
+// Automatické nahrádzanie :emotov: v správach (cez webhook), aby sa dali použiť emoty aj bez Nitra.
+// Nie je to príkaz – volá sa z messageCreate v index.js.
 module.exports = {
-    name: 'emote',
-    description: 'emotky',
-    async execute(bot, message){
-        const PREFIX = process.env.PREFIX;
-        const skplayers = process.env.SERVER_ID;
+    async handleEmoteMessage(bot, message){
         let regex = /\:[a-zA-z0-9]{2,}\:/g;
 
         const { EmbedBuilder, WebhookClient, MessageType } = require('discord.js');
+        if(!message.guild) return;
 
 
         async function send_edited_message(webhooh_id, webhook_token, message, text_spravy, odpoved){
@@ -112,34 +109,8 @@ module.exports = {
             }
 
         }
-        if(message.content.startsWith(PREFIX + "react") && message.type == 'REPLY'){
-            let args = message.content.split(" ");
-            let emoteText = args[1];
-            if(!emoteText) return message.reply("You need to specify emote");
-            if(regex.test(emoteText)){
-                let emoteName;
-                if(emoteText[0] == "<" && emoteText[emoteText.length-1] == ">"){
-                    emoteName = emoteText.slice(2).slice(0,-20);
-                }else{
-                    emoteName = emoteText.slice(1).slice(0,-1);
-                }
-                let emotikon = bot.emojis.cache.find(e => e.name == emoteName);
-                if(!emotikon) return message.reply("Cannot find emote");
-                message.delete();
-                const repliedTo = await message.channel.messages.fetch(message.reference.messageId).then(message => {
-                    message.react(emotikon);
-                    setTimeout(() => {
-                        message.reactions.resolve(emotikon.id).users.remove(bot.user.id);
-                    }, 4000);
-                });
-            }else{
-                return message.reply("Invalid emote");
-            }
-        }
-
         if(regex.test(message.content)){
             if(message.author.bot) return;
-            if(message.content.startsWith(PREFIX + "react")) return;
             if(message.member.premiumSinceTimestamp) return;
 
             const webhooks = await message.channel.fetchWebhooks();
